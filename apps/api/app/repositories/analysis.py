@@ -23,11 +23,15 @@ class AnalysisJobRepository:
         )
         return result
 
-    async def list_for_repository(self, repository_id: UUID) -> list[AnalysisJob]:
+    async def list_for_repository(
+        self, repository_id: UUID, *, limit: int = 100, offset: int = 0
+    ) -> list[AnalysisJob]:
         statement = (
             select(AnalysisJob)
             .where(AnalysisJob.repository_id == repository_id)
             .order_by(AnalysisJob.created_at.desc(), AnalysisJob.id)
+            .limit(limit)
+            .offset(offset)
         )
         return list((await self._session.scalars(statement)).all())
 

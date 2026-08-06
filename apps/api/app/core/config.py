@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     )
     database_pool_size: int = Field(default=5, ge=1, le=50)
     database_pool_timeout_seconds: float = Field(default=5.0, gt=0, le=60)
+    analysis_pipeline_version: str = Field(default="1", min_length=1, max_length=100)
 
     @field_validator("database_url")
     @classmethod
