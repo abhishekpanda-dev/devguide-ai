@@ -6,6 +6,7 @@ from app.schemas.analysis import (
     AnalysisStageCreate,
     AnalysisStageRead,
 )
+from app.schemas.ingestion import RepositoryIngestionResult
 from app.schemas.repository import RepositoryCreate, RepositoryRead
 from app.schemas.submission import (
     RepositoryAnalysisListResponse,
@@ -20,6 +21,7 @@ __all__ = [
     "AnalysisStageRead",
     "RepositoryAnalysisListResponse",
     "RepositoryCreate",
+    "RepositoryIngestionResult",
     "RepositoryRead",
     "RepositorySubmissionRequest",
     "RepositorySubmissionResponse",

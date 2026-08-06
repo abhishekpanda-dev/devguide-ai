@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import Repository
@@ -34,3 +34,18 @@ class RepositoryRepository:
             .offset(offset)
         )
         return list((await self._session.scalars(statement)).all())
+
+    async def update_clone_metadata(
+        self,
+        repository_id: UUID,
+        *,
+        commit_sha: str,
+        default_branch: str | None,
+    ) -> Repository | None:
+        statement = (
+            update(Repository)
+            .where(Repository.id == repository_id)
+            .values(latest_commit_sha=commit_sha, default_branch=default_branch)
+            .returning(Repository)
+        )
+        return (await self._session.scalars(statement)).one_or_none()

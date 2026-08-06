@@ -89,6 +89,60 @@ class AnalysisNotFoundError(AppError):
         )
 
 
+class RepositoryCloneFailedError(AppError):
+    def __init__(self) -> None:
+        super().__init__(
+            code="repository_clone_failed",
+            message="The public repository could not be cloned.",
+            status_code=status.HTTP_502_BAD_GATEWAY,
+        )
+
+
+class RepositoryCloneTimeoutError(AppError):
+    def __init__(self) -> None:
+        super().__init__(
+            code="repository_clone_timeout",
+            message="The repository clone operation timed out.",
+            status_code=status.HTTP_504_GATEWAY_TIMEOUT,
+        )
+
+
+class RepositoryLimitExceededError(AppError):
+    def __init__(self, message: str) -> None:
+        super().__init__(
+            code="repository_limit_exceeded",
+            message=message,
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+        )
+
+
+class RepositoryWorkspaceError(AppError):
+    def __init__(self) -> None:
+        super().__init__(
+            code="repository_workspace_error",
+            message="The temporary repository workspace could not be managed safely.",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
+class InvalidRepositorySourceError(AppError):
+    def __init__(self) -> None:
+        super().__init__(
+            code="invalid_repository_source",
+            message="The repository source is invalid or unsupported for ingestion.",
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        )
+
+
+class GitNotAvailableError(AppError):
+    def __init__(self) -> None:
+        super().__init__(
+            code="git_not_available",
+            message="Git is not available to the ingestion service.",
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
+
+
 def _response(*, code: str, message: str, status_code: int) -> JSONResponse:
     return JSONResponse(
         status_code=status_code,
