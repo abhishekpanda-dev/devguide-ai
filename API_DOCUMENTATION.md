@@ -2,17 +2,30 @@
 
 ## Status
 
-The API has not been designed or implemented. No endpoints described here are available.
+The FastAPI foundation is implemented under `apps/api`. Only liveness and readiness are available; repository analysis, reports, chat, and AI functionality remain unimplemented.
 
-## Planned responsibilities
+## Common behavior
 
-- Submit a public repository for analysis
-- Query analysis status
-- Retrieve repository overview, architecture, health, and module results
-- Submit evidence-backed repository questions
+The API is versioned under `/api/v1`. Every HTTP response includes `X-Correlation-ID`. Clients may supply a UUID in that header; invalid values are replaced.
 
-## Contract work required
+Errors use this envelope:
 
-TODO: Confirm API style and versioning, authentication, identifiers, asynchronous job semantics, schemas, pagination, errors, rate limits, idempotency, and retention before documenting endpoints.
+```json
+{"error":{"code":"string","message":"string","correlation_id":"string"}}
+```
 
-An executable API specification should become the source of truth when implementation begins.
+## `GET /api/v1/health`
+
+Returns `200` when the API process can serve requests. It does not test external dependencies.
+
+```json
+{"status":"ok","service":"devguide-api","version":"0.1.0"}
+```
+
+## `GET /api/v1/ready`
+
+Uses the readiness service to check required dependencies. The current implementation executes a lightweight PostgreSQL query. It returns the health schema with `200` when ready, or a centralized `service_unavailable` error with `503` when the database check fails.
+
+## Unresolved contract work
+
+Authentication, resource identifiers, asynchronous job semantics, pagination, rate limits, idempotency, and retention remain undecided. No endpoints for those planned capabilities are exposed.
