@@ -31,6 +31,12 @@ python -c "from app.main import app; assert app.title == 'DevGuide AI API'"
 
 Run the worker with `arq app.worker.WorkerSettings`. A successful ingestion leaves the overall analysis `running` at 20%; parsing, language detection, indexing, embeddings, and later analysis stages are not implemented.
 
+## Internal parser foundation
+
+`app.parser.RepositoryParser` deterministically reads an existing repository workspace and returns accepted source files, extension-based language identifiers, SHA-256 metadata, line-based chunks, and repository summary statistics. It is internal only and is not called by the API or worker. Supported inputs are Python, JavaScript, TypeScript, Java, HTML, CSS, JSON, YAML, Markdown, and TOML. Binary, unsupported, oversized, rejected-media/archive/executable files, ignored directories, and symbolic links are skipped.
+
+Chunking defaults to 200 lines with 20 lines of overlap and preserves one-based inclusive ranges. The parser performs no AST extraction, framework detection, persistence, AI calls, embeddings, network access, or repository-code execution.
+
 Configuration uses `DEVGUIDE_`-prefixed environment variables. See the repository `.env.example`. Never place production credentials in that file or logs.
 
 ## Endpoints
