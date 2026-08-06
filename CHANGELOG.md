@@ -7,5 +7,6 @@ All notable changes will be documented here. The project intends to follow [Keep
 ### Added
 
 - Initial repository structure and foundational documentation placeholders.
+- FastAPI database and persistence foundation for repositories, analysis jobs, and analysis stages, including typed async repositories, service transaction boundaries, and the first Alembic migration.
 
 TODO: Define the first release milestone and versioning policy.
