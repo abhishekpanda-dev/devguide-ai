@@ -1,4 +1,6 @@
 from functools import lru_cache
+from pathlib import Path
+from tempfile import gettempdir
 from typing import Literal
 
 from pydantic import Field, PostgresDsn, field_validator
@@ -24,12 +26,33 @@ class Settings(BaseSettings):
     database_pool_size: int = Field(default=5, ge=1, le=50)
     database_pool_timeout_seconds: float = Field(default=5.0, gt=0, le=60)
     analysis_pipeline_version: str = Field(default="1", min_length=1, max_length=100)
+    clone_timeout_seconds: float = Field(default=60.0, gt=0, le=900)
+    maximum_repository_size_mb: int = Field(default=100, ge=1, le=1024)
+    maximum_repository_file_count: int = Field(default=20_000, ge=1, le=1_000_000)
+    maximum_individual_file_size_mb: int = Field(default=5, ge=1, le=100)
+    temporary_workspace_root: Path = Path(gettempdir()) / "devguide-workspaces"
+    git_executable: str = Field(default="git", min_length=1, max_length=1024)
+    clone_depth: Literal[1] = 1
 
     @field_validator("database_url")
     @classmethod
     def require_asyncpg(cls, value: PostgresDsn) -> PostgresDsn:
         if value.scheme != "postgresql+asyncpg":
             raise ValueError("database_url must use the postgresql+asyncpg scheme")
+        return value
+
+    @field_validator("temporary_workspace_root")
+    @classmethod
+    def require_absolute_workspace_root(cls, value: Path) -> Path:
+        if not value.is_absolute():
+            raise ValueError("temporary_workspace_root must be absolute")
+        return value
+
+    @field_validator("git_executable")
+    @classmethod
+    def reject_invalid_git_executable(cls, value: str) -> str:
+        if "\x00" in value or "\r" in value or "\n" in value:
+            raise ValueError("git_executable contains invalid characters")
         return value
 
 

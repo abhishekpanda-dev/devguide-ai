@@ -4,6 +4,8 @@
 
 The FastAPI, persistence, and repository-submission foundations are implemented under `apps/api`. Submission creates database records only: it does not clone a repository, contact GitHub, enqueue a worker, or start analysis. Reports, chat, and AI functionality remain unimplemented.
 
+Secure shallow-clone primitives now exist as an internal service for future worker use. They are not exposed as a public endpoint, and repository submission still does not trigger ingestion. Temporary clones are bounded, repository code is never executed, and workspaces are deleted after processing.
+
 ## Common behavior
 
 The API is versioned under `/api/v1`. Every HTTP response includes `X-Correlation-ID`. Clients may supply a UUID in that header; invalid values are replaced.

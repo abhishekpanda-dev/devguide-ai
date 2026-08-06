@@ -1,6 +1,8 @@
 # DevGuide AI API
 
-This directory contains the FastAPI, persistence, and repository-submission foundations. It provides versioned liveness and readiness, safe public GitHub URL normalization, database-only repository submission, repository and analysis-status reads, async SQLAlchemy infrastructure, Alembic migrations, JSON logging, correlation IDs, centralized errors, and unit tests. Repository cloning, ingestion, workers, and AI functionality are not implemented.
+This directory contains the FastAPI, persistence, and repository-submission foundations. It provides versioned liveness and readiness, safe public GitHub URL normalization, database-only repository submission, repository and analysis-status reads, async SQLAlchemy infrastructure, Alembic migrations, JSON logging, correlation IDs, centralized errors, and unit tests. Background ingestion orchestration, workers, parsing, and AI functionality are not implemented.
+
+The internal ingestion service now supplies secure cloning primitives for an existing repository and analysis job. It is not exposed through a public endpoint and no background worker invokes it yet.
 
 ## Requirements
 
@@ -46,3 +48,9 @@ All responses include `X-Correlation-ID`. A valid UUID supplied in that header i
 The initial migration creates `repositories`, `analysis_jobs`, and `analysis_stages` with UUID identifiers, stable PostgreSQL enums, restrictive foreign keys, progress and non-empty-value checks, timezone-aware timestamps, and indexed relationship columns. Typed async repository classes flush but do not commit. Minimal application services own commit and rollback behavior and translate persistence failures into application errors.
 
 SQLite is used only for portable unit coverage. PostgreSQL-specific enum and migration behavior is verified through offline SQL rendering; a live PostgreSQL integration suite remains future work.
+
+## Internal ingestion security
+
+Internal ingestion accepts only the previously normalized public GitHub HTTPS source. It invokes Git without a shell, uses clone depth 1, disables hooks and credential helpers, rejects local and extension protocols, avoids submodules, and captures bounded command output with a timeout. Repository code is never executed.
+
+Each clone uses a unique validated directory beneath `DEVGUIDE_TEMPORARY_WORKSPACE_ROOT`. The directory is removed after success or failure. Post-clone scanning skips `.git`, dependency/build/cache directories, and symbolic links while enforcing configured repository bytes, file count, and individual file size. Successful ingestion records the commit, safely discovered default branch, and partial analysis progress; it does not complete the overall analysis.

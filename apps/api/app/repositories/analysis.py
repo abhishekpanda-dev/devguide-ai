@@ -57,6 +57,26 @@ class AnalysisJobRepository:
         )
         return (await self._session.scalars(statement)).one_or_none()
 
+    async def update_ingestion_state(
+        self,
+        analysis_job_id: UUID,
+        *,
+        current_stage: str,
+        progress_percent: int,
+    ) -> AnalysisJob | None:
+        statement = (
+            update(AnalysisJob)
+            .where(AnalysisJob.id == analysis_job_id)
+            .values(
+                status=AnalysisJobStatus.RUNNING,
+                current_stage=current_stage,
+                progress_percent=progress_percent,
+                updated_at=datetime.now(UTC),
+            )
+            .returning(AnalysisJob)
+        )
+        return (await self._session.scalars(statement)).one_or_none()
+
 
 class AnalysisStageRepository:
     def __init__(self, session: AsyncSession) -> None:
