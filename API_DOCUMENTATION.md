@@ -2,7 +2,7 @@
 
 ## Status
 
-The FastAPI foundation is implemented under `apps/api`. Only liveness and readiness are available; repository analysis, reports, chat, and AI functionality remain unimplemented.
+The FastAPI and initial database foundations are implemented under `apps/api`. Only liveness and readiness are available. Repository, analysis-job, and analysis-stage persistence models are internal and have no public API routes. Repository ingestion, reports, chat, and AI functionality remain unimplemented.
 
 ## Common behavior
 

@@ -26,6 +26,42 @@ class ReadinessError(AppError):
         )
 
 
+class ResourceNotFoundError(AppError):
+    def __init__(self, resource: str) -> None:
+        super().__init__(
+            code="resource_not_found",
+            message=f"{resource} was not found.",
+            status_code=status.HTTP_404_NOT_FOUND,
+        )
+
+
+class ResourceConflictError(AppError):
+    def __init__(self, message: str) -> None:
+        super().__init__(
+            code="resource_conflict",
+            message=message,
+            status_code=status.HTTP_409_CONFLICT,
+        )
+
+
+class PersistenceError(AppError):
+    def __init__(self) -> None:
+        super().__init__(
+            code="persistence_error",
+            message="The requested data operation could not be completed.",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
+class ApplicationValidationError(AppError):
+    def __init__(self, message: str) -> None:
+        super().__init__(
+            code="validation_error",
+            message=message,
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        )
+
+
 def _response(*, code: str, message: str, status_code: int) -> JSONResponse:
     return JSONResponse(
         status_code=status_code,
