@@ -1,6 +1,6 @@
 # DevGuide AI API
 
-This directory contains the FastAPI, persistence, and repository-submission foundations. It provides versioned liveness and readiness, safe public GitHub URL normalization, database-only repository submission, repository and analysis-status reads, async SQLAlchemy infrastructure, Alembic migrations, JSON logging, correlation IDs, centralized errors, and unit tests. Background ingestion orchestration, workers, parsing, and AI functionality are not implemented.
+This directory contains the FastAPI foundation and a minimal ARQ analysis worker. Repository submission commits its records and dispatches the analysis ID to Redis. The worker safely claims queued work and runs only the `repository_ingestion` stage.
 
 The internal ingestion service now supplies secure cloning primitives for an existing repository and analysis job. It is not exposed through a public endpoint and no background worker invokes it yet.
 
@@ -8,6 +8,7 @@ The internal ingestion service now supplies secure cloning primitives for an exi
 
 - Python 3.11+
 - PostgreSQL for a successful readiness check (tests do not require it)
+- Redis for real submission dispatch and worker execution (unit tests do not require it)
 
 ## Setup and run
 
@@ -27,6 +28,8 @@ pytest
 alembic upgrade head --sql
 python -c "from app.main import app; assert app.title == 'DevGuide AI API'"
 ```
+
+Run the worker with `arq app.worker.WorkerSettings`. A successful ingestion leaves the overall analysis `running` at 20%; parsing, language detection, indexing, embeddings, and later analysis stages are not implemented.
 
 Configuration uses `DEVGUIDE_`-prefixed environment variables. See the repository `.env.example`. Never place production credentials in that file or logs.
 

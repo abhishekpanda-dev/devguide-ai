@@ -1,18 +1,33 @@
 from collections.abc import AsyncIterator
 from typing import cast
 from unittest.mock import AsyncMock
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import StaticPool
 
-from app.core.exceptions import PersistenceError
+from app.core.exceptions import AnalysisDispatchFailedError, PersistenceError
 from app.db.base import Base
 from app.models import AnalysisJob, AnalysisJobStatus, Repository
 from app.repositories import AnalysisJobRepository, RepositoryRepository
 from app.services.submission import RepositorySubmissionService
+
+
+class FakeQueue:
+    def __init__(self, *, fail: bool = False) -> None:
+        self.enqueued: list[UUID] = []
+        self.fail = fail
+
+    async def enqueue_analysis(
+        self, analysis_job_id: UUID, *, deduplication_key: str | None = None
+    ) -> None:
+        if self.fail:
+            from app.core.exceptions import RedisUnavailableError
+
+            raise RedisUnavailableError
+        self.enqueued.append(analysis_job_id)
 
 
 @pytest.fixture
@@ -27,22 +42,27 @@ async def submission_session() -> AsyncIterator[AsyncSession]:
 
 
 def submission_service(
-    session: AsyncSession, *, pipeline_version: str = "pipeline-v1"
+    session: AsyncSession,
+    *,
+    pipeline_version: str = "pipeline-v1",
+    queue: FakeQueue | None = None,
 ) -> RepositorySubmissionService:
     return RepositorySubmissionService(
         session=session,
         repositories=RepositoryRepository(session),
         analysis_jobs=AnalysisJobRepository(session),
         pipeline_version=pipeline_version,
+        queue=queue or FakeQueue(),
     )
 
 
 async def test_submission_creates_repository_and_queued_analysis(
     submission_session: AsyncSession,
 ) -> None:
-    result = await submission_service(submission_session, pipeline_version="configured-v2").submit(
-        "https://github.com/acme/project.git"
-    )
+    queue = FakeQueue()
+    result = await submission_service(
+        submission_session, pipeline_version="configured-v2", queue=queue
+    ).submit("https://github.com/acme/project.git")
 
     assert result.repository.normalized_url == "https://github.com/acme/project"
     assert result.repository.owner == "acme"
@@ -51,6 +71,25 @@ async def test_submission_creates_repository_and_queued_analysis(
     assert result.analysis_job.status is AnalysisJobStatus.QUEUED
     assert result.analysis_job.progress_percent == 0
     assert result.analysis_job.pipeline_version == "configured-v2"
+    assert queue.enqueued == [result.analysis_job.id]
+
+
+async def test_queue_failure_preserves_job_and_records_safe_failure(
+    submission_session: AsyncSession,
+) -> None:
+    with pytest.raises(AnalysisDispatchFailedError):
+        await submission_service(submission_session, queue=FakeQueue(fail=True)).submit(
+            "https://github.com/acme/project"
+        )
+
+    repository = await RepositoryRepository(submission_session).get_by_normalized_url(
+        "https://github.com/acme/project"
+    )
+    assert repository is not None
+    jobs = await AnalysisJobRepository(submission_session).list_for_repository(repository.id)
+    assert len(jobs) == 1
+    assert jobs[0].status is AnalysisJobStatus.FAILED
+    assert jobs[0].error_code == "analysis_dispatch_failed"
 
 
 async def test_repeated_submission_reuses_repository_and_creates_new_analysis(
@@ -79,6 +118,7 @@ async def test_submission_rolls_back_on_persistence_failure(
         repositories=RepositoryRepository(submission_session),
         analysis_jobs=FailingAnalysisJobRepository(submission_session),
         pipeline_version="v1",
+        queue=FakeQueue(),
     )
 
     with pytest.raises(PersistenceError):
@@ -131,6 +171,7 @@ async def test_submission_recovers_once_from_normalized_url_uniqueness_race() ->
         repositories=RacingRepositoryRepository(session, existing),
         analysis_jobs=RecordingAnalysisJobRepository(session),
         pipeline_version="v1",
+        queue=FakeQueue(),
     )
 
     result = await service.submit("https://github.com/acme/project")

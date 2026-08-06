@@ -58,6 +58,10 @@ def test_model_metadata_contains_required_constraints_and_indexes() -> None:
         "ck_analysis_stages_name_not_empty",
         "ck_analysis_stages_progress_percent_range",
     }.issubset({item.name for item in stage_table.constraints if isinstance(item, CheckConstraint)})
+    assert any(
+        isinstance(item, UniqueConstraint) and item.name == "uq_analysis_stages_job_name"
+        for item in stage_table.constraints
+    )
     assert job_table.c.repository_id.index is True
     assert stage_table.c.analysis_job_id.index is True
 

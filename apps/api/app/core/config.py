@@ -3,7 +3,7 @@ from pathlib import Path
 from tempfile import gettempdir
 from typing import Literal
 
-from pydantic import Field, PostgresDsn, field_validator
+from pydantic import AnyUrl, Field, PostgresDsn, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -33,6 +33,13 @@ class Settings(BaseSettings):
     temporary_workspace_root: Path = Path(gettempdir()) / "devguide-workspaces"
     git_executable: str = Field(default="git", min_length=1, max_length=1024)
     clone_depth: Literal[1] = 1
+    redis_url: AnyUrl = AnyUrl("redis://localhost:6379/0")
+    queue_name: str = Field(default="devguide-analysis", min_length=1, max_length=100)
+    worker_concurrency: int = Field(default=4, ge=1, le=100)
+    worker_job_timeout_seconds: int = Field(default=300, ge=1, le=3600)
+    worker_retry_count: int = Field(default=3, ge=0, le=10)
+    worker_retry_delay_seconds: int = Field(default=5, ge=0, le=300)
+    worker_heartbeat_interval_seconds: int = Field(default=15, ge=1, le=300)
 
     @field_validator("database_url")
     @classmethod

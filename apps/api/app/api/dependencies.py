@@ -66,6 +66,7 @@ def get_submission_service(
         repositories=repositories,
         analysis_jobs=analysis_jobs,
         pipeline_version=request.app.state.settings.analysis_pipeline_version,
+        queue=request.app.state.analysis_queue,
     )
 
 
