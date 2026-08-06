@@ -3,8 +3,9 @@ from dataclasses import dataclass
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions import PersistenceError
+from app.core.exceptions import AnalysisDispatchFailedError, AppError, PersistenceError
 from app.models import AnalysisJob, AnalysisJobStatus, Repository, RepositoryStatus
+from app.queue import AnalysisQueue
 from app.repositories import AnalysisJobRepository, RepositoryRepository
 from app.services.repository_url import NormalizedRepositoryUrl, normalize_repository_url
 
@@ -23,11 +24,13 @@ class RepositorySubmissionService:
         repositories: RepositoryRepository,
         analysis_jobs: AnalysisJobRepository,
         pipeline_version: str,
+        queue: AnalysisQueue,
     ) -> None:
         self._session = session
         self._repositories = repositories
         self._analysis_jobs = analysis_jobs
         self._pipeline_version = pipeline_version
+        self._queue = queue
 
     async def submit(self, source_url: str) -> RepositorySubmissionResult:
         normalized = normalize_repository_url(source_url)
@@ -45,6 +48,14 @@ class RepositorySubmissionService:
                 )
             )
             await self._session.commit()
+            try:
+                await self._queue.enqueue_analysis(
+                    analysis_job.id, deduplication_key=f"analysis:{analysis_job.id}"
+                )
+            except AppError as exc:
+                await self._analysis_jobs.mark_dispatch_failed(analysis_job.id)
+                await self._session.commit()
+                raise AnalysisDispatchFailedError from exc
             return RepositorySubmissionResult(
                 repository=repository,
                 analysis_job=analysis_job,

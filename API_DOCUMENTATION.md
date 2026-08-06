@@ -2,7 +2,7 @@
 
 ## Status
 
-The FastAPI, persistence, and repository-submission foundations are implemented under `apps/api`. Submission creates database records only: it does not clone a repository, contact GitHub, enqueue a worker, or start analysis. Reports, chat, and AI functionality remain unimplemented.
+The FastAPI, persistence, repository submission, and minimal asynchronous ingestion worker are implemented under `apps/api`. Submission commits database records, then enqueues the analysis ID through a typed ARQ queue adapter. It never clones during the API request. Reports, chat, parsing, indexing, and AI functionality remain unimplemented.
 
 Secure shallow-clone primitives now exist as an internal service for future worker use. They are not exposed as a public endpoint, and repository submission still does not trigger ingestion. Temporary clones are bounded, repository code is never executed, and workspaces are deleted after processing.
 
@@ -32,7 +32,11 @@ Uses the readiness service to check required dependencies. The current implement
 
 Accepts `{"source_url":"https://github.com/owner/repository"}` and returns `201` with `repository` and queued `analysis_job` objects. Only public `https://github.com/{owner}/{repository}` URLs are accepted. A trailing slash and `.git` suffix are removed during normalization. Credentials, ports, other schemes or hosts, IP addresses, query strings, fragments, traversal, and extra path segments are rejected.
 
-An existing normalized repository is reused, while every accepted submission creates a new queued analysis job using the configured pipeline version. This endpoint performs no network request and triggers no clone or worker.
+An existing normalized repository is reused, while every accepted submission creates a new queued analysis job using the configured pipeline version. After commit, the analysis ID is dispatched to Redis. Dispatch failure preserves the record, marks it failed with `analysis_dispatch_failed`, and returns a safe `503` error. This endpoint never clones repository content.
+
+## Worker lifecycle
+
+The ARQ worker atomically claims queued jobs and orchestrates only `repository_ingestion`. It records stage attempts, progress, heartbeat, completion, and safe failure details. Successful ingestion completes that stage at 100% but leaves the overall analysis running at 20%. Duplicate delivery does not rerun a completed ingestion stage. Redis is required for real dispatch and execution, not unit tests.
 
 ## `GET /api/v1/repositories/{repository_id}`
 

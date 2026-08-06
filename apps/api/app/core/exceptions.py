@@ -89,6 +89,24 @@ class AnalysisNotFoundError(AppError):
         )
 
 
+class AnalysisDispatchFailedError(AppError):
+    def __init__(self) -> None:
+        super().__init__(
+            code="analysis_dispatch_failed",
+            message="The analysis was saved but could not be dispatched.",
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
+
+
+class RedisUnavailableError(AppError):
+    def __init__(self) -> None:
+        super().__init__(
+            code="redis_unavailable",
+            message="The analysis queue is unavailable.",
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
+
+
 class RepositoryCloneFailedError(AppError):
     def __init__(self) -> None:
         super().__init__(

@@ -2,7 +2,15 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Integer, String, Uuid
+from sqlalchemy import (
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    UniqueConstraint,
+    Uuid,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin
@@ -54,6 +62,7 @@ class AnalysisStage(TimestampMixin, Base):
         CheckConstraint("progress_percent BETWEEN 0 AND 100", name="progress_percent_range"),
         CheckConstraint("attempt >= 1", name="attempt_at_least_one"),
         CheckConstraint("length(trim(name)) > 0", name="name_not_empty"),
+        UniqueConstraint("analysis_job_id", "name", name="uq_analysis_stages_job_name"),
     )
 
     id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)

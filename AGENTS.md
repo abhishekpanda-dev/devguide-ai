@@ -66,7 +66,7 @@ Before making changes, read the documents relevant to the task:
 - Repository Intelligence Agent: specified, not implemented.
 - Search Repository skill: specified, not implemented.
 - Backend: not implemented.
-- Worker: not implemented.
+- Worker: minimal repository-ingestion orchestration implemented; later stages are not implemented.
 - Frontend: not implemented.
 - Database schema: planned, not implemented.
 - Full CI/CD pipeline: not implemented.

@@ -77,6 +77,55 @@ class AnalysisJobRepository:
         )
         return (await self._session.scalars(statement)).one_or_none()
 
+    async def claim_queued(self, analysis_job_id: UUID) -> AnalysisJob | None:
+        now = datetime.now(UTC)
+        statement = (
+            update(AnalysisJob)
+            .where(
+                AnalysisJob.id == analysis_job_id,
+                AnalysisJob.status == AnalysisJobStatus.QUEUED,
+            )
+            .values(status=AnalysisJobStatus.RUNNING, started_at=now, updated_at=now)
+            .returning(AnalysisJob)
+        )
+        return (await self._session.scalars(statement)).one_or_none()
+
+    async def mark_dispatch_failed(self, analysis_job_id: UUID) -> AnalysisJob | None:
+        now = datetime.now(UTC)
+        statement = (
+            update(AnalysisJob)
+            .where(
+                AnalysisJob.id == analysis_job_id, AnalysisJob.status == AnalysisJobStatus.QUEUED
+            )
+            .values(
+                status=AnalysisJobStatus.FAILED,
+                error_code="analysis_dispatch_failed",
+                error_message="The analysis could not be dispatched for processing.",
+                completed_at=now,
+                updated_at=now,
+            )
+            .returning(AnalysisJob)
+        )
+        return (await self._session.scalars(statement)).one_or_none()
+
+    async def mark_failed(
+        self, analysis_job_id: UUID, *, error_code: str, error_message: str
+    ) -> AnalysisJob | None:
+        now = datetime.now(UTC)
+        statement = (
+            update(AnalysisJob)
+            .where(AnalysisJob.id == analysis_job_id)
+            .values(
+                status=AnalysisJobStatus.FAILED,
+                error_code=error_code,
+                error_message=error_message,
+                completed_at=now,
+                updated_at=now,
+            )
+            .returning(AnalysisJob)
+        )
+        return (await self._session.scalars(statement)).one_or_none()
+
 
 class AnalysisStageRepository:
     def __init__(self, session: AsyncSession) -> None:
@@ -101,6 +150,14 @@ class AnalysisStageRepository:
             .order_by(AnalysisStage.created_at, AnalysisStage.id)
         )
         return list((await self._session.scalars(statement)).all())
+
+    async def get_by_name(self, analysis_job_id: UUID, name: str) -> AnalysisStage | None:
+        result: AnalysisStage | None = await self._session.scalar(
+            select(AnalysisStage).where(
+                AnalysisStage.analysis_job_id == analysis_job_id, AnalysisStage.name == name
+            )
+        )
+        return result
 
     async def update_status(
         self, analysis_stage_id: UUID, status: AnalysisStageStatus
