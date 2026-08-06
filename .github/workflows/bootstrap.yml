@@ -1,28 +1,98 @@
 name: Bootstrap checks
 
 on:
-  push:
   pull_request:
+  push:
+    branches:
+      - main
 
 permissions:
   contents: read
 
 jobs:
   repository-skeleton:
+    name: Verify repository skeleton
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Check out repository without external actions
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git fetch --no-tags --depth=1 origin "${GITHUB_SHA}"
+          git checkout --detach FETCH_HEAD
+
       - name: Verify required root files
         shell: bash
         run: |
-          set -eu
-          for file in README.md PRD.md architecture.md AGENTS.md AGENTS_AND_SKILLS.md API_DOCUMENTATION.md CONTRIBUTING.md CHANGELOG.md LICENSE SECURITY.md .env.example .gitignore docker-compose.yml Makefile; do
-            test -f "$file"
+          set -euo pipefail
+
+          required_files=(
+            README.md
+            PRD.md
+            architecture.md
+            AGENTS.md
+            AGENTS_AND_SKILLS.md
+            API_DOCUMENTATION.md
+            CONTRIBUTING.md
+            CHANGELOG.md
+            LICENSE
+            SECURITY.md
+            .env.example
+            .gitignore
+            docker-compose.yml
+            Makefile
+          )
+
+          for file in "${required_files[@]}"; do
+            if [[ ! -f "$file" ]]; then
+              echo "::error file=$file::Required file is missing: $file"
+              exit 1
+            fi
           done
+
+          echo "All required root files are present."
+
       - name: Verify required directories
         shell: bash
         run: |
-          set -eu
-          for directory in .github/workflows apps/api apps/worker apps/web agents skills docs/decisions docs/diagrams docs/demo scripts; do
-            test -d "$directory"
+          set -euo pipefail
+
+          required_directories=(
+            .github/workflows
+            apps/api
+            apps/worker
+            apps/web
+            agents
+            skills
+            docs/decisions
+            docs/diagrams
+            docs/demo
+            scripts
+          )
+
+          for directory in "${required_directories[@]}"; do
+            if [[ ! -d "$directory" ]]; then
+              echo "::error::$directory is missing."
+              exit 1
+            fi
           done
+
+          echo "All required directories are present."
+
+      - name: Verify mandatory agent and skill documentation
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -s agents/repository_intelligence_agent.md
+          test -s skills/search_repository/SKILL.md
+
+          grep -q "Repository Intelligence Agent" AGENTS_AND_SKILLS.md
+          grep -q "Search Repository" AGENTS_AND_SKILLS.md
+
+          echo "Mandatory agent and skill documentation is present."
