@@ -18,3 +18,4 @@ def test_safe_defaults_use_postgresql() -> None:
     settings = Settings()
     assert settings.app_name == "devguide-api"
     assert settings.database_url.scheme == "postgresql+asyncpg"
+    assert settings.analysis_pipeline_version == "1"

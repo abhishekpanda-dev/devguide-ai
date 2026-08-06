@@ -62,6 +62,33 @@ class ApplicationValidationError(AppError):
         )
 
 
+class InvalidRepositoryUrlError(AppError):
+    def __init__(self, message: str = "The repository URL is invalid or unsupported.") -> None:
+        super().__init__(
+            code="invalid_repository_url",
+            message=message,
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        )
+
+
+class RepositoryNotFoundError(AppError):
+    def __init__(self) -> None:
+        super().__init__(
+            code="repository_not_found",
+            message="The repository was not found.",
+            status_code=status.HTTP_404_NOT_FOUND,
+        )
+
+
+class AnalysisNotFoundError(AppError):
+    def __init__(self) -> None:
+        super().__init__(
+            code="analysis_not_found",
+            message="The analysis was not found.",
+            status_code=status.HTTP_404_NOT_FOUND,
+        )
+
+
 def _response(*, code: str, message: str, status_code: int) -> JSONResponse:
     return JSONResponse(
         status_code=status_code,

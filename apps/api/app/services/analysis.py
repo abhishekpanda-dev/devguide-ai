@@ -4,6 +4,7 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import (
+    AnalysisNotFoundError,
     ApplicationValidationError,
     PersistenceError,
     ResourceNotFoundError,
@@ -39,6 +40,25 @@ class AnalysisJobService:
             raise ApplicationValidationError("The repository reference is invalid.") from exc
         except SQLAlchemyError as exc:
             await self._session.rollback()
+            raise PersistenceError from exc
+
+    async def get_required(self, analysis_job_id: UUID) -> AnalysisJob:
+        try:
+            analysis_job = await self._repository.get_by_id(analysis_job_id)
+        except SQLAlchemyError as exc:
+            raise PersistenceError from exc
+        if analysis_job is None:
+            raise AnalysisNotFoundError
+        return analysis_job
+
+    async def list_for_repository(
+        self, repository_id: UUID, *, limit: int, offset: int
+    ) -> list[AnalysisJob]:
+        try:
+            return await self._repository.list_for_repository(
+                repository_id, limit=limit, offset=offset
+            )
+        except SQLAlchemyError as exc:
             raise PersistenceError from exc
 
     async def update_status(self, analysis_job_id: UUID, status: AnalysisJobStatus) -> AnalysisJob:

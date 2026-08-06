@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.exceptions import (
     ApplicationValidationError,
     PersistenceError,
+    RepositoryNotFoundError,
     ResourceConflictError,
 )
 from app.models import Repository
@@ -57,6 +58,12 @@ class RepositoryService:
             return await self._repository.get_by_id(repository_id)
         except SQLAlchemyError as exc:
             raise PersistenceError from exc
+
+    async def get_required(self, repository_id: UUID) -> Repository:
+        repository = await self.get_by_id(repository_id)
+        if repository is None:
+            raise RepositoryNotFoundError
+        return repository
 
     async def list(self, *, limit: int = 100, offset: int = 0) -> list[Repository]:
         if not 1 <= limit <= 1000 or offset < 0:
