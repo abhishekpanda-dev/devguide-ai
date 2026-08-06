@@ -1,0 +1,28 @@
+name: Bootstrap checks
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  repository-skeleton:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify required root files
+        shell: bash
+        run: |
+          set -eu
+          for file in README.md PRD.md architecture.md AGENTS.md AGENTS_AND_SKILLS.md API_DOCUMENTATION.md CONTRIBUTING.md CHANGELOG.md LICENSE SECURITY.md .env.example .gitignore docker-compose.yml Makefile; do
+            test -f "$file"
+          done
+      - name: Verify required directories
+        shell: bash
+        run: |
+          set -eu
+          for directory in .github/workflows apps/api apps/worker apps/web agents skills docs/decisions docs/diagrams docs/demo scripts; do
+            test -d "$directory"
+          done

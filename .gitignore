@@ -206,6 +206,19 @@ tempCodeRunnerFile.py
 # Ruff stuff:
 .ruff_cache/
 
+# JavaScript / web tooling
+node_modules/
+.next/
+out/
+.turbo/
+playwright-report/
+test-results/
+
+# Local tooling and operating systems
+.DS_Store
+Thumbs.db
+*.local
+
 # PyPI configuration file
 .pypirc
 
