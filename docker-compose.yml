@@ -1,0 +1,3 @@
+# DevGuide AI container topology placeholder.
+# TODO: Define services only after runtimes, storage, and queueing are approved.
+services: {}
