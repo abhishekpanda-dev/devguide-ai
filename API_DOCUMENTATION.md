@@ -38,6 +38,12 @@ An existing normalized repository is reused, while every accepted submission cre
 
 The ARQ worker atomically claims queued jobs and orchestrates only `repository_ingestion`. It records stage attempts, progress, heartbeat, completion, and safe failure details. Successful ingestion completes that stage at 100% but leaves the overall analysis running at 20%. Duplicate delivery does not rerun a completed ingestion stage. Redis is required for real dispatch and execution, not unit tests.
 
+## Internal repository parser
+
+The internal `RepositoryParser` converts an existing workspace into typed file records, deterministic line chunks, and summary statistics. Language detection is extension-based for Python, JavaScript, TypeScript, Java, HTML, CSS, JSON, YAML, Markdown, and TOML. Binary, unsupported, oversized, media, archive, executable, symbolic-link, and ignored-directory content is skipped.
+
+The parser has no public endpoint and is not integrated with the worker or database. It does not perform AST extraction, framework detection, AI inference, embeddings, network access, or repository-code execution.
+
 ## `GET /api/v1/repositories/{repository_id}`
 
 Returns a repository record or `repository_not_found` with `404`.

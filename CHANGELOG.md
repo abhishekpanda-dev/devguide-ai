@@ -12,5 +12,6 @@ All notable changes will be documented here. The project intends to follow [Keep
 - Internal secure public-GitHub ingestion primitives with shallow clone command restrictions, bounded temporary workspaces, repository limit scanning, metadata persistence, and guaranteed cleanup.
 - ARQ-backed typed analysis dispatch and a separately runnable minimal worker.
 - Atomic queued-job claiming and idempotent `repository_ingestion` stage orchestration with safe dispatch and stage failure persistence.
+- Internal deterministic repository parser foundation with extension-based language detection, safe file filtering, typed metadata, line chunking, and repository statistics.
 
 TODO: Define the first release milestone and versioning policy.
