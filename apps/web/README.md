@@ -2,17 +2,30 @@
 
 React frontend MVP for the existing DevGuide AI API. It displays only data returned by documented
 public endpoints, including repository summaries, findings, structure, quality scores, and grounded
-questions. Chat history, streaming, and dependency-graph visualization are not available.
+questions. Chat history and streaming are not available.
 
-## Dashboard shell phase 1
+## Dashboard and dependency visualization
 
 The repository overview is a compact dark intelligence workspace with a repository toolbar,
 analysis-summary sidebar, evidence-focused center workspace, and findings/quality/actions panel.
 Every metric comes from the existing repository, summary, findings, structure, and quality APIs.
 Optional panel failures remain local and use the existing safe correlation-ID errors.
 
-Dependency visualization is intentionally reserved for Phase 2. This phase adds no graph library,
-fake metrics, unsupported controls, or client-authored analysis facts.
+Dashboard Phase 2 uses a custom SVG radial Bundle built with `d3-hierarchy` and `d3-shape` as the
+desktop default, retains `@xyflow/react` as the Flow view, and provides a native accessible Tree
+view. All three modes are derived exclusively from the persisted structure response. File nodes are
+colored by language by default (with optional top-folder coloring), sized by bounded dependency
+count, and marked when the server identifies a probable entry point. Directed edge treatments
+distinguish imports, requires, and reexports.
+
+Rendering is deterministically bounded to 80 nodes and 160 resolved edges, with a visible notice
+when data is omitted. Isolated files are hidden by default and can be explicitly restored.
+Unresolved targets are ignored. Filters and search operate on an immutable client-side projection
+and do not create analysis facts. Exact source links are displayed only when the structure API
+supplies them. Bundle and Flow are replaced by the simpler Tree view on mobile.
+
+The visualization represents supported static local relationships, not runtime behavior or a
+complete dependency graph. Matrix, Treemap, and Cluster modes remain deferred.
 
 ## Local development
 

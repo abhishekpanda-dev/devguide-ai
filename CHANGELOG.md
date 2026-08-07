@@ -6,6 +6,12 @@ All notable changes will be documented here. The project intends to follow [Keep
 
 ### Added
 
+- Dashboard Phase 2: bounded Graph and Tree dependency visualization using persisted structure
+  files and resolved edges, with filters, path search, selected-file evidence, responsive fallback,
+  accessible controls, and explicit truncation notices.
+- Radial dependency Bundle presentation using focused D3 hierarchy/shape utilities, with the
+  existing React Flow view retained as Flow, incoming/outgoing emphasis, isolated-file control,
+  shared selection details, and Tree as the mobile default.
 - Dashboard Shell Phase 1: a responsive dark repository-intelligence workspace backed only by
   existing summary, findings, structure, and quality APIs; dependency graph work remains deferred.
 - Initial repository structure and foundational documentation placeholders.
