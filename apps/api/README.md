@@ -16,8 +16,8 @@ phrases, token overlap, simple symbol-like declarations and configuration keys, 
 matches. Identical and overlapping chunks are removed.
 
 Every citation is revalidated for repository-relative POSIX path, one-based inclusive bounds,
-chunk hash, and commit SHA. Invalid evidence fails closed. There is no public search or chat
-endpoint. Semantic embeddings, pgvector, Claude, and final answer generation are not implemented;
+chunk hash, and commit SHA. Invalid evidence fails closed. There is no standalone public search
+endpoint. Semantic embeddings and pgvector are not implemented;
 search requires no network or AI provider.
 
 ## Internal grounded-answer generation
@@ -32,8 +32,8 @@ provider call.
 Claude requests have configured time, output-token, evidence-count, evidence-character, retry,
 and temperature bounds. Only transient failures and timeouts are retried. Provider details are
 translated to stable application errors. Automated tests inject mock clients and never call the
-network. No public chat endpoint or runtime Repository Intelligence Agent orchestration exists;
-embeddings and pgvector are not implemented.
+network. The public boundary is limited to the single repository-question endpoint; chat history
+and embeddings are not implemented.
 
 ## Internal Repository Intelligence Agent
 
@@ -47,7 +47,25 @@ and repository-file ID before return.
 Dependencies are injected, and an internal factory wires Search Repository and Grounded Answer to
 either the configured Claude provider or an injected provider. Agent tests use
 `MockLLMProvider` with typed fakes and require no PostgreSQL, Redis, GitHub, network, or API key.
-No public chat endpoint exists, and semantic embeddings remain unimplemented.
+Only the minimal repository-question endpoint described below is public; semantic embeddings
+remain unimplemented.
+
+## Repository-question endpoint
+
+`POST /api/v1/analyses/{analysis_id}/questions` is the minimal public boundary over the runtime
+agent. Only `question` is required. Optional language, path-prefix, retrieval-limit,
+minimum-score, and citation-limit controls are validated and mapped into the internal agent
+request; the analysis ID always comes from the path. Responses contain evidence-backed citations
+and preserve the request correlation ID.
+
+The API accepts questions only for existing running or completed analyses that already have
+persisted chunks. Insufficient evidence returns `200` without calling the provider. Provider,
+search, grounded-answer, and agent dependencies are constructed outside the handler and can be
+overridden in tests. Set `DEVGUIDE_AI_PROVIDER=mock` in local/test environments or `claude` with a
+configured Anthropic key. Automated tests use the mock provider and make no network calls.
+
+This endpoint has no chat history, authentication, streaming, SSE, WebSockets, embeddings, or
+frontend integration.
 
 ## Requirements
 

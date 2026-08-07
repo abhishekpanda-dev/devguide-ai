@@ -40,3 +40,8 @@ def test_ai_settings_have_safe_bounded_defaults() -> None:
     assert settings.ai_retry_count == 2
     with pytest.raises(ValidationError):
         Settings(ai_maximum_evidence_items=0)
+
+
+def test_public_ai_provider_environment_name_is_supported() -> None:
+    settings = Settings.model_validate({"DEVGUIDE_AI_PROVIDER": "mock", "environment": "test"})
+    assert settings.ai_provider_name == "mock"

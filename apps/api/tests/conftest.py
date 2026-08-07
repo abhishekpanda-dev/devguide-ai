@@ -10,7 +10,7 @@ from app.main import create_app
 
 @pytest.fixture
 def test_settings() -> Settings:
-    return Settings(environment="test")
+    return Settings(environment="test", ai_provider_name="mock")
 
 
 @pytest.fixture

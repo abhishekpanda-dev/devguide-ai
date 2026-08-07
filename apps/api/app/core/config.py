@@ -3,7 +3,7 @@ from pathlib import Path
 from tempfile import gettempdir
 from typing import Literal
 
-from pydantic import AnyUrl, Field, PostgresDsn, field_validator
+from pydantic import AliasChoices, AnyUrl, Field, PostgresDsn, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -14,6 +14,7 @@ class Settings(BaseSettings):
         env_prefix="DEVGUIDE_",
         case_sensitive=False,
         extra="ignore",
+        populate_by_name=True,
     )
 
     app_name: str = "devguide-api"
@@ -40,7 +41,10 @@ class Settings(BaseSettings):
     worker_retry_count: int = Field(default=3, ge=0, le=10)
     worker_retry_delay_seconds: int = Field(default=5, ge=0, le=300)
     worker_heartbeat_interval_seconds: int = Field(default=15, ge=1, le=300)
-    ai_provider_name: Literal["claude", "mock"] = "claude"
+    ai_provider_name: Literal["claude", "mock"] = Field(
+        default="claude",
+        validation_alias=AliasChoices("DEVGUIDE_AI_PROVIDER", "DEVGUIDE_AI_PROVIDER_NAME"),
+    )
     claude_model: str = Field(default="claude-sonnet-4-5", min_length=1, max_length=200)
     anthropic_api_key: str | None = Field(default=None, min_length=1)
     ai_request_timeout_seconds: float = Field(default=30.0, gt=0, le=300)

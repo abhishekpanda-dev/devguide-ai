@@ -6,13 +6,19 @@ from fastapi import APIRouter, Query, status
 from app.api.dependencies import (
     AnalysisJobServiceDependency,
     HealthServiceDependency,
+    QuestionReadyAnalysisDependency,
     ReadinessServiceDependency,
+    RepositoryIntelligenceAgentDependency,
     RepositoryServiceDependency,
     SubmissionServiceDependency,
 )
+from app.core.exceptions import AppError, RepositoryQuestionFailedError
+from app.core.middleware import correlation_id_context
 from app.schemas import (
     AnalysisJobRead,
+    RepositoryAgentResponse,
     RepositoryAnalysisListResponse,
+    RepositoryQuestionRequest,
     RepositoryRead,
     RepositorySubmissionRequest,
     RepositorySubmissionResponse,
@@ -20,6 +26,27 @@ from app.schemas import (
 from app.schemas.health import HealthResponse
 
 router = APIRouter()
+
+
+@router.post(
+    "/analyses/{analysis_id}/questions",
+    response_model=RepositoryAgentResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def ask_repository_question(
+    analysis_id: UUID,
+    request: RepositoryQuestionRequest,
+    _analysis: QuestionReadyAnalysisDependency,
+    agent: RepositoryIntelligenceAgentDependency,
+) -> RepositoryAgentResponse:
+    agent_request = request.to_agent_request(
+        analysis_job_id=analysis_id,
+        correlation_id=correlation_id_context.get(),
+    )
+    try:
+        return await agent.run(agent_request)
+    except AppError as exc:
+        raise RepositoryQuestionFailedError from exc
 
 
 @router.get("/health", response_model=HealthResponse, status_code=status.HTTP_200_OK)
