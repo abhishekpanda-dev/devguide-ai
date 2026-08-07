@@ -29,5 +29,8 @@ All notable changes will be documented here. The project intends to follow [Keep
 - Minimal `POST /api/v1/analyses/{analysis_id}/questions` endpoint with typed request/response
   validation, analysis readiness checks, correlation propagation, dependency-injected provider and
   agent wiring, stable question errors, and offline mock-provider API tests.
+- React and TypeScript frontend MVP with repository submission, polled analysis progress,
+  repository metadata, bounded evidence-backed questions, accessible responsive styling, typed API
+  errors, and mocked interaction tests.
 
 TODO: Define the first release milestone and versioning policy.
