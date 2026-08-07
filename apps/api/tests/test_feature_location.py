@@ -112,6 +112,13 @@ def test_intent_routing_and_bounded_normalization() -> None:
         == "repository submission"
     )
     assert (
+        extract_feature_phrase(
+            "Where is realtime monitoring implemented, what could be affected, "
+            "and which tests should I review?"
+        )
+        == "realtime monitoring"
+    )
+    assert (
         len(extract_feature_phrase("where is one two three four five six seven eight nine").split())
         == 8
     )

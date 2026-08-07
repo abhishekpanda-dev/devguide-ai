@@ -1,10 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
-import { Link, useLocation, useParams } from 'react-router'
+import { Link, Navigate, useLocation, useParams } from 'react-router'
 import { getAnalysis } from '../api/analyses'
 import { AnalysisSummary } from '../components/analysis/AnalysisSummary'
 import { ApiErrorMessage } from '../components/feedback/ApiErrorMessage'
+import { dashboardFocusTarget } from './analysisNavigation'
 
 const terminal = new Set(['partial', 'completed', 'failed', 'cancelled'])
+
 export function AnalysisProgressPage() {
   const { analysisId = '' } = useParams()
   const location = useLocation()
@@ -33,6 +35,9 @@ export function AnalysisProgressPage() {
   const analysis = query.data
   const repositoryId = analysis.repository_id || submittedRepositoryId
   const usable = analysis.status === 'completed' || analysis.status === 'partial'
+  const focusTarget =
+    repositoryId && usable ? dashboardFocusTarget(repositoryId, location.search) : null
+  if (focusTarget) return <Navigate to={focusTarget} replace />
   return (
     <div className="narrow">
       <p className="eyebrow">Repository analysis</p>

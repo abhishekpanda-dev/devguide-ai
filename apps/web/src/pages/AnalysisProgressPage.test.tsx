@@ -1,5 +1,6 @@
 import { screen } from '@testing-library/react'
 import { AnalysisProgressPage } from './AnalysisProgressPage'
+import { dashboardFocusTarget } from './analysisNavigation'
 import { analysis, jsonResponse, renderRoute } from '../test/test-utils'
 
 test('shows an explicit analysis loading state', () => {
@@ -33,4 +34,11 @@ test('renders a safe terminal analysis error', async () => {
   )
   renderRoute(<AnalysisProgressPage />, '/analyses/a1', '/analyses/:analysisId')
   expect(await screen.findByRole('alert')).toHaveTextContent('Repository parsing failed.')
+})
+
+test('preserves a persisted-path focus request when handing off to the repository dashboard', () => {
+  expect(dashboardFocusTarget('r1', '?focus=monitoring-dashboard%2Fsrc%2Frealtime.ts')).toBe(
+    '/repositories/r1?focus=monitoring-dashboard%2Fsrc%2Frealtime.ts',
+  )
+  expect(dashboardFocusTarget('r1', '')).toBeNull()
 })
