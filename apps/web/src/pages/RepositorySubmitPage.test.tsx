@@ -31,9 +31,9 @@ test('submits and navigates with keyboard-accessible controls', async () => {
   await user.keyboard('{Enter}')
   expect(await screen.findByRole('heading', { name: 'Progress' })).toBeInTheDocument()
   expect(fetch).toHaveBeenCalledWith(
-  expect.stringMatching(/\/api\/v1\/repositories$/),
-  expect.objectContaining({ method: 'POST' }),
-)
+    expect.stringMatching(/\/api\/v1\/repositories$/),
+    expect.objectContaining({ method: 'POST' }),
+  )
 })
 test('shows API errors and correlation IDs', async () => {
   const user = userEvent.setup()

@@ -179,9 +179,41 @@ export interface QualityResponse {
   analysis_job_id: string
   overall_score: number
   category_scores: Record<string, number>
-  score_breakdown: Array<{ category: string; signal_type: string; count: number; points_deducted: number; explanation: string }>
-  unused_code_candidates: Array<{ id: string; symbol_name: string; symbol_kind: string; path: string; language: string; start_line: number; end_line: number; reason: string; confidence: number; recommendation: string; excerpt: string; source_url: string }>
-  duplicate_code_groups: Array<{ group_id: string; match_type: string; confidence: number; recommendation: string; members: Array<{ path: string; language: string; start_line: number; end_line: number; excerpt: string; source_url: string }> }>
+  score_breakdown: Array<{
+    category: string
+    signal_type: string
+    count: number
+    points_deducted: number
+    explanation: string
+  }>
+  unused_code_candidates: Array<{
+    id: string
+    symbol_name: string
+    symbol_kind: string
+    path: string
+    language: string
+    start_line: number
+    end_line: number
+    reason: string
+    confidence: number
+    recommendation: string
+    excerpt: string
+    source_url: string
+  }>
+  duplicate_code_groups: Array<{
+    group_id: string
+    match_type: string
+    confidence: number
+    recommendation: string
+    members: Array<{
+      path: string
+      language: string
+      start_line: number
+      end_line: number
+      excerpt: string
+      source_url: string
+    }>
+  }>
   summary: { unused_candidate_count: number; duplicate_group_count: number }
   limitations: string[]
   score_version: string
