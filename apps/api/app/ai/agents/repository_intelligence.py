@@ -1,5 +1,5 @@
 from pathlib import PurePosixPath, PureWindowsPath
-from typing import Protocol
+from typing import Any, Protocol
 from uuid import UUID
 
 from app.core.exceptions import (
@@ -8,6 +8,7 @@ from app.core.exceptions import (
     RepositoryAgentEvidenceInvalidError,
     RepositoryAgentSearchFailedError,
 )
+from app.schemas.feature_location import FeatureLocationResult
 from app.schemas.grounded_answer import EvidenceQuality, GroundedAnswer
 from app.schemas.repository_agent import (
     RepositoryAgentCitation,
@@ -35,11 +36,16 @@ class GroundedAnswerGenerator(Protocol):
         correlation_id: str | None = None,
         maximum_citations: int = 10,
         structure_evidence: StructureEvidence | None = None,
+        feature_location: FeatureLocationResult | None = None,
     ) -> GroundedAnswer: ...
 
 
 class StructureEvidenceRetriever(Protocol):
     async def retrieve(self, analysis_id: UUID, question: str) -> StructureEvidence | None: ...
+
+
+class FeatureLocationRetriever(Protocol):
+    async def retrieve(self, analysis_id: UUID, question: str) -> FeatureLocationResult | None: ...
 
 
 class RepositoryIntelligenceAgent:
@@ -50,15 +56,22 @@ class RepositoryIntelligenceAgent:
         search_skill: SearchSkill,
         answer_service: GroundedAnswerGenerator,
         structure_evidence: StructureEvidenceRetriever | None = None,
+        feature_location: FeatureLocationRetriever | None = None,
     ) -> None:
         self._search_skill = search_skill
         self._answer_service = answer_service
         self._structure_evidence = structure_evidence
+        self._feature_location = feature_location
 
     async def run(self, request: RepositoryAgentRequest) -> RepositoryAgentResponse:
         structure = (
             await self._structure_evidence.retrieve(request.analysis_job_id, request.question)
             if self._structure_evidence
+            else None
+        )
+        feature = (
+            await self._feature_location.retrieve(request.analysis_job_id, request.question)
+            if self._feature_location
             else None
         )
         search_request = SearchRepositoryRequest(
@@ -89,7 +102,7 @@ class RepositoryIntelligenceAgent:
                 "returned_count": len(evidence),
             }
         )
-        if not evidence and structure is None:
+        if not evidence and structure is None and feature is None:
             return RepositoryAgentResponse(
                 analysis_job_id=request.analysis_job_id,
                 question=request.question,
@@ -103,9 +116,14 @@ class RepositoryIntelligenceAgent:
                 limitations=search_result.limitations
                 or ("No validated repository evidence met the retrieval threshold.",),
                 correlation_id=request.correlation_id,
+                feature_location=feature,
             )
         try:
-            kwargs = {"structure_evidence": structure} if structure is not None else {}
+            kwargs: dict[str, Any] = {}
+            if structure is not None:
+                kwargs["structure_evidence"] = structure
+            if feature is not None:
+                kwargs["feature_location"] = feature
             grounded = await self._answer_service.answer(
                 question=request.question,
                 search_result=normalized_search,
@@ -140,6 +158,7 @@ class RepositoryIntelligenceAgent:
             limitations=limitations,
             correlation_id=request.correlation_id,
             structure_evidence_used=structure is not None,
+            feature_location=feature,
         )
 
     @staticmethod

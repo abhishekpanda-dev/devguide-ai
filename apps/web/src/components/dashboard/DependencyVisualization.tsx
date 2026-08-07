@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router'
+import { Link, useSearchParams } from 'react-router'
 import type {
   Analysis,
   CodeFindingsResponse,
@@ -40,6 +40,7 @@ export function DependencyVisualization({
   findings?: CodeFindingsResponse
   error?: unknown
 }) {
+  const [searchParams] = useSearchParams()
   const [mode, setMode] = useState<'bundle' | 'flow' | 'tree'>(() =>
     narrowScreen() ? 'tree' : 'bundle',
   )
@@ -87,6 +88,14 @@ export function DependencyVisualization({
     setSelectedId(file.repository_file_id)
     setFocusId(file.repository_file_id)
   }, [])
+  useEffect(() => {
+    const requestedPath = searchParams.get('focus')
+    const file = structure?.files.find((item) => item.path === requestedPath)
+    if (!file) return
+    setFilters(EMPTY_FILTERS)
+    setSelectedId(file.repository_file_id)
+    setFocusId(file.repository_file_id)
+  }, [searchParams, structure])
   useEffect(() => {
     const query = window.matchMedia?.('(max-width: 760px)')
     if (!query) return

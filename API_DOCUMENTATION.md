@@ -96,6 +96,16 @@ authentication, and full product orchestration remain unimplemented.
 
 ## `POST /api/v1/analyses/{analysis_id}/questions`
 
+Feature-location and change-impact questions reuse this endpoint. Routed responses add a nullable,
+backward-compatible `feature_location` section containing a normalized feature phrase, probable
+ranked files, inferred roles and confidence, exact revision links, direct static impact, probable
+indirect impact, likely tests, and a six-part change plan. Unrelated questions omit the section.
+
+These facts are derived only from persisted analysis-scoped files, chunks, resolved dependency
+edges, findings, and quality candidates. Client bodies cannot supply trusted file IDs, roles, impact
+facts, or links. Static edges do not prove runtime behavior, and likely tests are not measured
+coverage. Claude can summarize the bounded facts but cannot add trusted files or citations.
+
 Exposes the bounded Repository Intelligence Agent for one question about one persisted analysis.
 The analysis ID comes only from the path. The body requires `question` and optionally accepts
 `language_filters`, `path_prefix`, `retrieval_limit`, `retrieval_minimum_score`, and

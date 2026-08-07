@@ -3,6 +3,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from app.schemas.feature_location import FeatureLocationResult
 from app.schemas.grounded_answer import EvidenceQuality
 
 
@@ -102,6 +103,7 @@ class RepositoryAgentResponse(BaseModel):
     limitations: tuple[str, ...] = ()
     correlation_id: str | None = None
     structure_evidence_used: bool = False
+    feature_location: FeatureLocationResult | None = None
 
     @model_validator(mode="after")
     def validate_response(self) -> "RepositoryAgentResponse":

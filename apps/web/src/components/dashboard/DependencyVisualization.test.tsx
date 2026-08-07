@@ -98,13 +98,20 @@ const structure: StructureResponse = {
   limitations: [],
 }
 
-function renderVisualization(value: StructureResponse = structure, error?: unknown) {
+function renderVisualization(value: StructureResponse = structure, error?: unknown, route = '/') {
   return render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[route]}>
       <DependencyVisualization analysis={analysis} structure={value} error={error} />
     </MemoryRouter>,
   )
 }
+
+test('focus query selects the persisted matching file without trusting a client file id', async () => {
+  renderVisualization(structure, undefined, '/?focus=src%2Fservice.ts')
+  const details = await screen.findByLabelText('Selected file details')
+  expect(details).toHaveTextContent('src/service.ts')
+  expect(details).toHaveTextContent('Dependencies')
+})
 
 test('defaults to Bundle with real persisted nodes and edges and preserves Flow and Tree', async () => {
   const { container } = renderVisualization()

@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import Protocol
 
+from app.schemas.feature_location import FeatureLocationResult
 from app.schemas.grounded_answer import EvidenceQuality, TokenUsage
 from app.schemas.retrieval import RepositoryEvidence
 from app.schemas.structure_evidence import StructureEvidence
@@ -17,6 +18,7 @@ class ProviderGroundedAnswerRequest:
     maximum_output_tokens: int
     temperature: float
     structure_evidence: StructureEvidence | None = None
+    feature_location: FeatureLocationResult | None = None
 
 
 @dataclass(frozen=True, slots=True)

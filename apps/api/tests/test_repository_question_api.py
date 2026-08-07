@@ -7,6 +7,7 @@ from httpx import AsyncClient
 
 from app.ai.providers import MockLLMProvider
 from app.api.dependencies import (
+    get_feature_location_service,
     get_llm_provider,
     get_repository_intelligence_agent,
     get_search_repository_skill,
@@ -92,6 +93,7 @@ def configure_runtime(
     app.dependency_overrides[require_question_ready_analysis] = ready_analysis
     app.dependency_overrides[get_search_repository_skill] = lambda: search
     app.dependency_overrides[get_llm_provider] = lambda: provider
+    app.dependency_overrides[get_feature_location_service] = lambda: None
     return search, provider
 
 
