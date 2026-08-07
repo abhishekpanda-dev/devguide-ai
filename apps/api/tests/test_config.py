@@ -30,3 +30,13 @@ def test_ingestion_settings_validate_safe_boundaries() -> None:
         Settings(clone_depth=2)
     with pytest.raises(ValidationError):
         Settings(temporary_workspace_root=Path("relative/workspaces"))
+
+
+def test_ai_settings_have_safe_bounded_defaults() -> None:
+    settings = Settings(environment="test")
+    assert settings.ai_provider_name == "claude"
+    assert settings.anthropic_api_key is None
+    assert settings.ai_temperature == 0
+    assert settings.ai_retry_count == 2
+    with pytest.raises(ValidationError):
+        Settings(ai_maximum_evidence_items=0)

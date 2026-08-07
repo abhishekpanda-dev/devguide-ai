@@ -40,6 +40,15 @@ class Settings(BaseSettings):
     worker_retry_count: int = Field(default=3, ge=0, le=10)
     worker_retry_delay_seconds: int = Field(default=5, ge=0, le=300)
     worker_heartbeat_interval_seconds: int = Field(default=15, ge=1, le=300)
+    ai_provider_name: Literal["claude", "mock"] = "claude"
+    claude_model: str = Field(default="claude-sonnet-4-5", min_length=1, max_length=200)
+    anthropic_api_key: str | None = Field(default=None, min_length=1)
+    ai_request_timeout_seconds: float = Field(default=30.0, gt=0, le=300)
+    ai_maximum_output_tokens: int = Field(default=1024, ge=1, le=8192)
+    ai_maximum_evidence_items: int = Field(default=10, ge=1, le=100)
+    ai_maximum_evidence_characters: int = Field(default=30_000, ge=1, le=200_000)
+    ai_retry_count: int = Field(default=2, ge=0, le=5)
+    ai_temperature: float = Field(default=0.0, ge=0, le=1)
 
     @field_validator("database_url")
     @classmethod

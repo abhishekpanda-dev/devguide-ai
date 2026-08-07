@@ -4,16 +4,20 @@
 
 ## Document status
 
-**Status:** Search Repository deterministic lexical runtime foundation implemented; Repository
-Intelligence Agent and AI generation remain unimplemented.
+**Status:** Search Repository deterministic lexical runtime foundation and internal Claude-backed
+grounded-answer generation foundation implemented; Repository Intelligence Agent orchestration
+remains incomplete.
 
 The runtime skill is internal and analysis-scoped. It searches persisted chunks by exact and
 partial path, phrase, token overlap, simple class/function/method/configuration-key patterns,
 language, and path prefix; then returns validated citations or an explicit insufficient-evidence
-result. Semantic embeddings, pgvector, Claude, repository overview generation, and final answer
-generation are not implemented.
+result. Semantic embeddings, pgvector, repository overview generation, and final agent
+orchestration are not implemented. Claude is available behind the internal typed
+`LLMProvider`; automated tests use the deterministic `MockLLMProvider` and make no network calls.
+No public chat endpoint exists.
 
-These documents define bounded AI behavior for the planned DevGuide AI MVP. They do not provide executable agent, retrieval, backend, database, or model-provider functionality.
+These documents define bounded AI behavior and distinguish the implemented retrieval/provider
+foundations from the still-planned runtime agent workflow.
 
 ## Catalog
 
@@ -64,7 +68,7 @@ flowchart LR
 | Requirement | Artifact | Documentation status | Runtime status |
 | --- | --- | --- | --- |
 | At least one custom agent | `agents/repository_intelligence_agent.md` | Complete specification | Not implemented |
-| At least one custom skill | `skills/search_repository/SKILL.md` | Complete specification with valid skill frontmatter | Not implemented |
+| At least one custom skill | `skills/search_repository/SKILL.md` | Complete specification with valid skill frontmatter | Deterministic lexical foundation implemented and tested |
 | Agent and skill documented centrally | `AGENTS_AND_SKILLS.md` | Complete catalog and cooperation model | Not applicable |
 | Both committed to repository | The three files in this change | Ready to commit | Not yet committed by this task |
 
@@ -80,8 +84,8 @@ The documentation checkpoint is satisfied when these files are committed. The wo
 - [ ] Implement ranking, deduplication, diversity limits, and evidence budgets.
 - [ ] Implement immutable evidence IDs and citation validation against stored source ranges.
 - [ ] Keep deterministic findings in a distinct typed collection from AI interpretations.
-- [ ] Implement `LLMProvider` and deterministic `MockLLMProvider` behavior described in `architecture.md`.
-- [ ] Apply strict structured-output validation and bounded retry behavior.
+- [x] Implement `LLMProvider`, Claude, and deterministic `MockLLMProvider` foundations.
+- [x] Apply strict grounded-answer structured-output validation and bounded retry behavior.
 - [ ] Implement insufficient-evidence refusal and limitation paths.
 - [ ] Add prompt-injection fixtures and verify that repository instructions are ignored.
 - [ ] Test that no shell, execution, dependency-installation, write, or unrestricted-network capability is exposed.
