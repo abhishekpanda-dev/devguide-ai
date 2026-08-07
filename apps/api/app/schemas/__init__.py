@@ -7,6 +7,12 @@ from app.schemas.analysis import (
     AnalysisStageRead,
 )
 from app.schemas.ingestion import RepositoryIngestionResult
+from app.schemas.parser import (
+    CodeChunkRead,
+    ParserPersistenceResult,
+    RepositoryFileRead,
+    RepositoryParseSummary,
+)
 from app.schemas.repository import RepositoryCreate, RepositoryRead
 from app.schemas.submission import (
     RepositoryAnalysisListResponse,
@@ -19,9 +25,13 @@ __all__ = [
     "AnalysisJobRead",
     "AnalysisStageCreate",
     "AnalysisStageRead",
+    "CodeChunkRead",
+    "ParserPersistenceResult",
     "RepositoryAnalysisListResponse",
     "RepositoryCreate",
+    "RepositoryFileRead",
     "RepositoryIngestionResult",
+    "RepositoryParseSummary",
     "RepositoryRead",
     "RepositorySubmissionRequest",
     "RepositorySubmissionResponse",

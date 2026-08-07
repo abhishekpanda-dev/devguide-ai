@@ -14,7 +14,9 @@ from app.models import (
     AnalysisJobStatus,
     AnalysisStage,
     AnalysisStageStatus,
+    CodeChunk,
     Repository,
+    RepositoryFile,
     RepositorySourceType,
     RepositoryStatus,
 )
@@ -97,3 +99,21 @@ def test_foreign_keys_are_restrictive() -> None:
     )
     assert job_fk.ondelete == "RESTRICT"
     assert stage_fk.ondelete == "RESTRICT"
+
+
+def test_parser_persistence_models_have_provenance_constraints() -> None:
+    file_table = cast(Table, RepositoryFile.__table__)
+    chunk_table = cast(Table, CodeChunk.__table__)
+    assert file_table.c.repository_id.index is True
+    assert file_table.c.analysis_job_id.index is True
+    assert chunk_table.c.repository_file_id.index is True
+    assert chunk_table.c.analysis_job_id.index is True
+    assert {item.name for item in file_table.constraints if isinstance(item, CheckConstraint)} >= {
+        "ck_repository_files_size_bytes_nonnegative",
+        "ck_repository_files_line_count_nonnegative",
+        "ck_repository_files_path_relative",
+    }
+    assert {item.name for item in chunk_table.constraints if isinstance(item, CheckConstraint)} >= {
+        "ck_code_chunks_start_line_positive",
+        "ck_code_chunks_line_range_valid",
+    }

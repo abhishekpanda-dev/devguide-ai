@@ -3,10 +3,9 @@ from datetime import UTC, datetime
 from typing import Protocol
 from uuid import UUID
 
-from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions import AppError
+from app.ingestion import RepositoryWorkspace
 from app.models import (
     AnalysisJob,
     AnalysisJobStatus,
@@ -14,10 +13,13 @@ from app.models import (
     AnalysisStageStatus,
     Repository,
 )
+from app.parser import RepositoryParser
 from app.repositories import AnalysisJobRepository, AnalysisStageRepository, RepositoryRepository
 from app.schemas import RepositoryIngestionResult
+from app.services.parser_persistence import ParserPersistenceService
 
 INGESTION_STAGE = "repository_ingestion"
+PARSING_STAGE = "repository_parsing"
 
 
 @dataclass(frozen=True, slots=True)
@@ -33,142 +35,153 @@ class WorkerResult:
 
 
 class IngestionService(Protocol):
-    async def ingest(
-        self, repository: Repository, analysis_job: AnalysisJob
+    def create_workspace(self) -> RepositoryWorkspace: ...
+    async def ingest_in_workspace(
+        self, repository: Repository, analysis_job: AnalysisJob, workspace: RepositoryWorkspace
     ) -> RepositoryIngestionResult: ...
 
 
 class AnalysisWorkerService:
-    def __init__(self, *, session: AsyncSession, ingestion: IngestionService) -> None:
+    def __init__(
+        self,
+        *,
+        session: AsyncSession,
+        ingestion: IngestionService,
+        parser: RepositoryParser | None = None,
+        persistence: ParserPersistenceService | None = None,
+    ) -> None:
         self._session = session
         self._jobs = AnalysisJobRepository(session)
         self._stages = AnalysisStageRepository(session)
         self._repositories = RepositoryRepository(session)
         self._ingestion = ingestion
+        self._parser = parser or RepositoryParser()
+        self._persistence = persistence or ParserPersistenceService(session)
 
     async def process(self, analysis_job_id: UUID) -> WorkerResult:
         job = await self._jobs.get_by_id(analysis_job_id)
         if job is None:
-            return self._noop(analysis_job_id, "analysis_job_not_found")
-
-        stage = await self._stages.get_by_name(job.id, INGESTION_STAGE)
-        if stage is not None and stage.status is AnalysisStageStatus.COMPLETED:
+            return WorkerResult(
+                analysis_job_id,
+                INGESTION_STAGE,
+                AnalysisStageStatus.PENDING,
+                AnalysisJobStatus.QUEUED,
+                0,
+                0,
+                "analysis_job_not_found",
+            )
+        parsing = await self._stages.get_by_name(job.id, PARSING_STAGE)
+        if parsing is not None and parsing.status is AnalysisStageStatus.COMPLETED:
             return WorkerResult(
                 job.id,
-                INGESTION_STAGE,
-                stage.status,
+                PARSING_STAGE,
+                parsing.status,
                 job.status,
-                stage.attempt,
+                parsing.attempt,
                 job.progress_percent,
-                limitations=(
-                    "Duplicate delivery was ignored because ingestion already completed.",
-                ),
+                limitations=("Duplicate delivery was ignored because parsing already completed.",),
             )
-
         claimed = await self._jobs.claim_queued(job.id)
         if claimed is None:
             return WorkerResult(
                 job.id,
                 INGESTION_STAGE,
-                stage.status if stage else AnalysisStageStatus.PENDING,
+                AnalysisStageStatus.PENDING,
                 job.status,
-                stage.attempt if stage else 0,
+                0,
                 job.progress_percent,
-                error_code="analysis_job_not_claimable",
-                limitations=("Only queued analysis jobs can be claimed.",),
+                "analysis_job_not_claimable",
             )
-
-        now = datetime.now(UTC)
-        if stage is None:
-            stage = await self._stages.create(
-                AnalysisStage(analysis_job_id=job.id, name=INGESTION_STAGE, attempt=1)
-            )
-        else:
-            stage.attempt += 1
-        stage.status = AnalysisStageStatus.RUNNING
-        stage.progress_percent = 10
-        stage.started_at = now
-        stage.heartbeat_at = now
-        stage.completed_at = None
-        stage.error_code = None
-        stage.error_message = None
-        claimed.current_stage = INGESTION_STAGE
-        claimed.progress_percent = 10
-        await self._session.commit()
-
         repository = await self._repositories.get_by_id(claimed.repository_id)
         if repository is None:
             return await self._fail(
-                claimed.id,
-                stage,
-                "analysis_stage_failed",
+                claimed,
+                await self._start_stage(claimed, INGESTION_STAGE, 10),
                 "Repository ingestion could not be completed.",
             )
-
+        ingestion_stage = await self._start_stage(claimed, INGESTION_STAGE, 10)
         try:
-            ingestion_result = await self._ingestion.ingest(repository, claimed)
-            stage.status = AnalysisStageStatus.COMPLETED
-            stage.progress_percent = 100
-            stage.heartbeat_at = datetime.now(UTC)
-            stage.completed_at = stage.heartbeat_at
-            claimed.status = AnalysisJobStatus.RUNNING
-            claimed.progress_percent = 20
-            await self._session.commit()
-            return WorkerResult(
-                claimed.id,
-                INGESTION_STAGE,
-                stage.status,
-                claimed.status,
-                stage.attempt,
-                claimed.progress_percent,
-                limitations=tuple(ingestion_result.limitations),
+            with self._ingestion.create_workspace() as workspace:
+                ingestion = await self._ingestion.ingest_in_workspace(
+                    repository, claimed, workspace
+                )
+                self._complete_stage(ingestion_stage)
+                claimed.progress_percent = 20
+                await self._session.commit()
+                parsing_stage = await self._start_stage(claimed, PARSING_STAGE, 30)
+                parsed = self._parser.parse(workspace.repository_path)
+                await self._persistence.persist(
+                    repository_id=repository.id,
+                    analysis_job_id=claimed.id,
+                    commit_sha=ingestion.commit_sha,
+                    result=parsed,
+                )
+                self._complete_stage(parsing_stage)
+                claimed.status = AnalysisJobStatus.RUNNING
+                claimed.current_stage = PARSING_STAGE
+                claimed.progress_percent = 40
+                await self._session.commit()
+                return WorkerResult(
+                    claimed.id,
+                    PARSING_STAGE,
+                    parsing_stage.status,
+                    claimed.status,
+                    parsing_stage.attempt,
+                    40,
+                    limitations=tuple(parsed.statistics.limitations),
+                )
+        except Exception:
+            stage = await self._stages.get_by_name(claimed.id, PARSING_STAGE) or ingestion_stage
+            message = (
+                "Repository parsing could not be completed."
+                if stage.name == PARSING_STAGE
+                else "Repository ingestion could not be completed."
             )
-        except AppError:
-            return await self._fail(
-                claimed.id,
-                stage,
-                "analysis_stage_failed",
-                "Repository ingestion could not be completed.",
-            )
-        except SQLAlchemyError:
-            await self._session.rollback()
-            return await self._fail(
-                claimed.id,
-                stage,
-                "analysis_stage_failed",
-                "Repository ingestion could not be completed.",
-            )
+            return await self._fail(claimed, stage, message)
 
-    async def _fail(
-        self, job_id: UUID, stage: AnalysisStage, code: str, message: str
-    ) -> WorkerResult:
+    async def _start_stage(self, job: AnalysisJob, name: str, progress: int) -> AnalysisStage:
+        stage = await self._stages.get_by_name(job.id, name)
+        if stage is None:
+            stage = await self._stages.create(
+                AnalysisStage(analysis_job_id=job.id, name=name, attempt=1)
+            )
+        else:
+            stage.attempt += 1
+        now = datetime.now(UTC)
+        stage.status = AnalysisStageStatus.RUNNING
+        stage.progress_percent = progress
+        stage.started_at = now
+        stage.heartbeat_at = now
+        job.current_stage = name
+        job.progress_percent = progress
+        await self._session.commit()
+        return stage
+
+    @staticmethod
+    def _complete_stage(stage: AnalysisStage) -> None:
+        now = datetime.now(UTC)
+        stage.status = AnalysisStageStatus.COMPLETED
+        stage.progress_percent = 100
+        stage.heartbeat_at = now
+        stage.completed_at = now
+
+    async def _fail(self, job: AnalysisJob, stage: AnalysisStage, message: str) -> WorkerResult:
         now = datetime.now(UTC)
         stage.status = AnalysisStageStatus.FAILED
-        stage.error_code = code
+        stage.error_code = "analysis_stage_failed"
         stage.error_message = message
         stage.heartbeat_at = now
         stage.completed_at = now
-        job = await self._jobs.mark_failed(job_id, error_code=code, error_message=message)
+        await self._jobs.mark_failed(
+            job.id, error_code="analysis_stage_failed", error_message=message
+        )
         await self._session.commit()
         return WorkerResult(
-            job_id,
-            INGESTION_STAGE,
+            job.id,
+            stage.name,
             stage.status,
             AnalysisJobStatus.FAILED,
             stage.attempt,
-            job.progress_percent if job else 10,
-            error_code=code,
-        )
-
-    @staticmethod
-    def _noop(job_id: UUID, code: str) -> WorkerResult:
-        return WorkerResult(
-            job_id,
-            INGESTION_STAGE,
-            AnalysisStageStatus.PENDING,
-            AnalysisJobStatus.QUEUED,
-            0,
-            0,
-            error_code=code,
-            limitations=("The requested analysis job does not exist.",),
+            job.progress_percent,
+            "analysis_stage_failed",
         )
