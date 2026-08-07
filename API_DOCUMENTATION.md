@@ -157,3 +157,8 @@ Context is bounded by `DEVGUIDE_AI_MAXIMUM_EVIDENCE_CHARACTERS`, credential-like
 redacted, and citations are validated and reconstructed by the API. Repository files are never
 modified. Use mock mode for deterministic offline testing; configured Claude requests may incur
 provider costs. Always review a suggestion before applying it.
+
+The findings API remains backward compatible. Its deterministic analyzer centrally excludes
+supported lockfiles, generated/build/vendor content, minified assets, and source maps. New stable
+rule IDs are `python.mutable-default-argument`, `python.bare-except`, `python.runtime-assert`, and
+`security.tls-verification-disabled`. Exact commit, path, and line citations are unchanged.

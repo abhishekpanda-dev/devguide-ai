@@ -161,3 +161,16 @@ SQLite is used only for portable unit coverage. PostgreSQL-specific enum and mig
 Internal ingestion accepts only the previously normalized public GitHub HTTPS source. It invokes Git without a shell, uses clone depth 1, disables hooks and credential helpers, rejects local and extension protocols, avoids submodules, and captures bounded command output with a timeout. Repository code is never executed.
 
 Each clone uses a unique validated directory beneath `DEVGUIDE_TEMPORARY_WORKSPACE_ROOT`. The directory is removed after success or failure. Post-clone scanning skips `.git`, dependency/build/cache directories, and symbolic links while enforcing configured repository bytes, file count, and individual file size. Successful ingestion records the commit, safely discovered default branch, and partial analysis progress; it does not complete the overall analysis.
+# Deterministic findings policy
+
+Findings use a central repository-relative file classification. Supported lockfiles, generated and
+build output, vendored dependencies, minified assets, and source maps do not produce findings.
+Large-file applies only to accepted source files. Marker rules apply to accepted source, tests,
+configuration, documentation, and unknown text; credential matching is limited to source and
+configuration; executable Python rules use the AST and do not execute code. The additional
+high-confidence rules cover mutable default arguments, bare exception handlers, non-test runtime
+assertions, and `requests`/`httpx` calls with `verify=False`.
+
+Info, warning, and high indicate increasing review priority, not certainty. Stable rule confidence
+values are deterministic. Findings are bounded review signals and may contain false positives or
+false negatives; they are not confirmed vulnerabilities.

@@ -67,6 +67,19 @@ def test_secret_is_redacted_and_safe_timeout_not_flagged(tmp_path: Path) -> None
     assert secret not in repr(result)
 
 
+def test_all_credential_values_on_one_line_are_redacted(tmp_path: Path) -> None:
+    first = "fake-first-secret"
+    second = "fake-second-secret"
+    result = analyzer().analyze(
+        parse(tmp_path, f'API_KEY = "{first}"; PASSWORD = "{second}"\n'),
+        commit_sha="a" * 40,
+    )
+    assert len(result.findings) == 1
+    assert first not in repr(result)
+    assert second not in repr(result)
+    assert result.findings[0].evidence_excerpt.count("[REDACTED]") == 2
+
+
 def test_invalid_path_and_bound_fail_closed(tmp_path: Path) -> None:
     parsed = parse(tmp_path, "# TODO a\n# TODO b\n")
     source = parsed.files[0]
@@ -85,9 +98,13 @@ def test_invalid_path_and_bound_fail_closed(tmp_path: Path) -> None:
         "package-lock.json",
         "yarn.lock",
         "pnpm-lock.yaml",
+        "npm-shrinkwrap.json",
         "poetry.lock",
+        "Pipfile.lock",
         "Cargo.lock",
         "composer.lock",
+        "Gemfile.lock",
+        "go.sum",
     ],
 )
 def test_dependency_lockfiles_do_not_trigger_large_file(tmp_path: Path, lockfile: str) -> None:
@@ -97,8 +114,7 @@ def test_dependency_lockfiles_do_not_trigger_large_file(tmp_path: Path, lockfile
     result = analyzer(threshold=10).analyze(RepositoryParser().parse(tmp_path), commit_sha="a" * 40)
     rule_ids = {item.rule_id for item in result.findings}
     assert "maintainability.large-file" not in rule_ids
-    if lockfile == "package-lock.json":
-        assert "maintainability.todo" in rule_ids
+    assert not result.findings
 
 
 def test_large_application_source_still_triggers_large_file(tmp_path: Path) -> None:
@@ -106,6 +122,7 @@ def test_large_application_source_still_triggers_large_file(tmp_path: Path) -> N
         parse(tmp_path, "value = 1\n" * 20), commit_sha="a" * 40
     )
     assert [item.rule_id for item in result.findings] == ["maintainability.large-file"]
+    assert result.findings[0].evidence_excerpt == "Source file contains 20 lines."
 
 
 @pytest.mark.parametrize("directory", ["node_modules", "dist", "build", "vendor"])
@@ -123,6 +140,68 @@ def test_excluded_directories_do_not_trigger_large_file(tmp_path: Path, director
     )
     result = analyzer(threshold=10).analyze(excluded, commit_sha="a" * 40)
     assert "maintainability.large-file" not in {item.rule_id for item in result.findings}
+
+
+@pytest.mark.parametrize("name", ["app.min.js", "styles.min.css", "bundle.js.map"])
+def test_minified_and_map_files_are_excluded(tmp_path: Path, name: str) -> None:
+    parsed = parse(tmp_path, "value = 1\n" * 20)
+    source = parsed.files[0]
+    modified = replace(
+        parsed, files=(replace(source, metadata=replace(source.metadata, path=name)),)
+    )
+    assert analyzer(threshold=10).analyze(modified, commit_sha="a" * 40).findings == ()
+
+
+def test_ordinary_json_configuration_is_not_treated_as_generated(tmp_path: Path) -> None:
+    (tmp_path / "config.json").write_text('{"note": "TODO review"}\n', encoding="utf-8")
+    findings = analyzer().analyze(RepositoryParser().parse(tmp_path), commit_sha="a" * 40).findings
+    assert [item.rule_id for item in findings] == ["maintainability.todo"]
+
+
+def test_python_executable_rules_ignore_comments_and_strings(tmp_path: Path) -> None:
+    content = '# eval(x) subprocess.run(x, shell=True)\ntext = "exec(x)"\neval(x)\nexec(x)\n'
+    findings = analyzer().analyze(parse(tmp_path, content), commit_sha="a" * 40).findings
+    assert [item.rule_id for item in findings] == ["python.eval", "python.exec"]
+    assert [item.start_line for item in findings] == [3, 4]
+
+
+def test_high_confidence_python_rules_positive_and_negative_cases(tmp_path: Path) -> None:
+    content = (
+        "import requests\n"
+        "def collect(items=[]):\n return items\n"
+        "def safe(items=None):\n return [] if items is None else items\n"
+        "try:\n work()\nexcept:\n recover()\n"
+        "assert user_id is not None\n"
+        "requests.get(url, verify=False, timeout=5)\n"
+        "requests.get(url, verify=True, timeout=5)\n"
+    )
+    findings = analyzer().analyze(parse(tmp_path, content), commit_sha="a" * 40).findings
+    by = {item.rule_id: item for item in findings}
+    assert by["python.mutable-default-argument"].start_line == 2
+    assert by["python.mutable-default-argument"].severity is FindingSeverity.WARNING
+    assert by["python.mutable-default-argument"].confidence == 0.99
+    assert "Use None" in by["python.mutable-default-argument"].deterministic_recommendation
+    assert by["python.bare-except"].start_line == 8
+    assert by["python.runtime-assert"].start_line == 10
+    assert by["security.tls-verification-disabled"].start_line == 11
+    assert set(by) == {
+        "python.mutable-default-argument",
+        "python.bare-except",
+        "python.runtime-assert",
+        "security.tls-verification-disabled",
+    }
+
+
+def test_runtime_assert_is_not_reported_in_tests(tmp_path: Path) -> None:
+    parsed = parse(tmp_path, "assert result\n")
+    source = parsed.files[0]
+    test_source = replace(
+        source, metadata=replace(source.metadata, path="tests/test_app.py", is_test=True)
+    )
+    assert (
+        analyzer().analyze(replace(parsed, files=(test_source,)), commit_sha="a" * 40).findings
+        == ()
+    )
 
 
 @pytest.fixture
