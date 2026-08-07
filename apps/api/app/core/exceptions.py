@@ -242,6 +242,33 @@ class RepositoryAgentAnswerFailedError(AppError):
         )
 
 
+class AnalysisNotReadyError(AppError):
+    def __init__(self) -> None:
+        super().__init__(
+            code="analysis_not_ready",
+            message="The analysis is not ready for repository questions.",
+            status_code=status.HTTP_409_CONFLICT,
+        )
+
+
+class RepositoryQuestionInvalidError(AppError):
+    def __init__(self) -> None:
+        super().__init__(
+            code="repository_question_invalid",
+            message="The repository question request is invalid.",
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        )
+
+
+class RepositoryQuestionFailedError(AppError):
+    def __init__(self) -> None:
+        super().__init__(
+            code="repository_question_failed",
+            message="The repository question could not be completed.",
+            status_code=status.HTTP_502_BAD_GATEWAY,
+        )
+
+
 def _response(*, code: str, message: str, status_code: int) -> JSONResponse:
     return JSONResponse(
         status_code=status_code,
@@ -260,7 +287,10 @@ async def app_error_handler(_request: Request, exc: AppError) -> JSONResponse:
     return _response(code=exc.code, message=exc.message, status_code=exc.status_code)
 
 
-async def validation_error_handler(_request: Request, _exc: RequestValidationError) -> JSONResponse:
+async def validation_error_handler(request: Request, _exc: RequestValidationError) -> JSONResponse:
+    if request.url.path.endswith("/questions"):
+        error = RepositoryQuestionInvalidError()
+        return _response(code=error.code, message=error.message, status_code=error.status_code)
     return _response(
         code="validation_error",
         message="The request is invalid.",

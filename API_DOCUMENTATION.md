@@ -50,7 +50,7 @@ The parser has no public endpoint. Its output is transactionally stored in `repo
 
 ## Internal Search Repository skill
 
-There is no public search or chat endpoint. Internal callers use a typed request containing
+There is no standalone public search endpoint. Internal callers use a typed request containing
 `analysis_job_id`, `query`, optional `languages`, optional repository-relative `path_prefix`,
 `limit`, and `minimum_score`. Results contain persisted evidence provenance, deterministic scores,
 matched channels, counts, coverage, and limitations.
@@ -64,7 +64,7 @@ involved.
 
 ## Internal grounded-answer generation
 
-There is no public chat route. The internal `GroundedAnswerService` accepts a question and a
+The internal `GroundedAnswerService` accepts a question and a
 Search Repository result, bounds validated lexical evidence by configured item and character
 limits, and calls the typed asynchronous `LLMProvider`. Provider output is structured and contains
 answer text, cited chunk IDs, evidence quality, insufficient-evidence state, limitations, and safe
@@ -81,7 +81,7 @@ unimplemented.
 
 ## Internal Repository Intelligence Agent
 
-No agent endpoint is exposed. The internal typed agent accepts an analysis ID, question, optional
+The internal typed agent accepts an analysis ID, question, optional
 language and path-prefix filters, retrieval score/limit controls, citation limit, and correlation
 ID. It invokes deterministic lexical Search Repository retrieval, independently verifies analysis
 scope and citation metadata, removes duplicate evidence, orders it deterministically, and invokes
@@ -93,6 +93,29 @@ provider/model metadata and limitations. Search and answer failures are translat
 agent errors without exposing database or provider details. Runtime tests use `MockLLMProvider`
 and typed fakes; no external service is required. Public chat, embeddings, streaming,
 authentication, and full product orchestration remain unimplemented.
+
+## `POST /api/v1/analyses/{analysis_id}/questions`
+
+Exposes the bounded Repository Intelligence Agent for one question about one persisted analysis.
+The analysis ID comes only from the path. The body requires `question` and optionally accepts
+`language_filters`, `path_prefix`, `retrieval_limit`, `retrieval_minimum_score`, and
+`maximum_citations`.
+
+The endpoint returns `200` with the typed agent response: answer, evidence quality,
+insufficient-evidence state, retrieved count, safe provider/model metadata, limitations,
+correlation ID, and validated citations containing chunk and repository-file IDs, relative path,
+one-based inclusive lines, and content hash. Insufficient evidence is also a successful `200`
+response with no citations or provider call.
+
+Before agent execution, the API requires an existing running or completed analysis with persisted
+chunks. Missing analyses return `analysis_not_found`; other states or missing chunks return
+`analysis_not_ready`. Invalid bodies return `repository_question_invalid`, and safely translated
+agent failures return `repository_question_failed`.
+
+`DEVGUIDE_AI_PROVIDER=mock` is allowed for local/test environments. `claude` mode requires
+`DEVGUIDE_ANTHROPIC_API_KEY`. The route performs no provider construction. There is no chat
+history, authentication, streaming, SSE, WebSocket behavior, or semantic embedding retrieval;
+answers use deterministic lexical evidence and validated citations.
 
 ## `GET /api/v1/repositories/{repository_id}`
 

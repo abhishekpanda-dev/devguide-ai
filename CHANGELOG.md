@@ -26,5 +26,8 @@ All notable changes will be documented here. The project intends to follow [Keep
   Search Repository retrieval with Grounded Answer generation, independent evidence and citation
   validation, deterministic deduplication and ordering, insufficient-evidence short-circuiting,
   dependency injection, safe agent errors, and external-service-free tests.
+- Minimal `POST /api/v1/analyses/{analysis_id}/questions` endpoint with typed request/response
+  validation, analysis readiness checks, correlation propagation, dependency-injected provider and
+  agent wiring, stable question errors, and offline mock-provider API tests.
 
 TODO: Define the first release milestone and versioning policy.

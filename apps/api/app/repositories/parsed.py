@@ -63,6 +63,12 @@ class ParsedRepository:
             ).all()
         )
 
+    async def has_chunks(self, analysis_job_id: UUID) -> bool:
+        chunk_id = await self._session.scalar(
+            select(CodeChunk.id).where(CodeChunk.analysis_job_id == analysis_job_id).limit(1)
+        )
+        return chunk_id is not None
+
     async def search_candidates(
         self,
         analysis_job_id: UUID,

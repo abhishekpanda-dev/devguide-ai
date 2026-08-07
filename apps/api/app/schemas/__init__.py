@@ -20,6 +20,7 @@ from app.schemas.parser import (
     RepositoryFileRead,
     RepositoryParseSummary,
 )
+from app.schemas.question import RepositoryQuestionRequest
 from app.schemas.repository import RepositoryCreate, RepositoryRead
 from app.schemas.repository_agent import (
     RepositoryAgentCitation,
@@ -60,6 +61,7 @@ __all__ = [
     "RepositoryFileRead",
     "RepositoryIngestionResult",
     "RepositoryParseSummary",
+    "RepositoryQuestionRequest",
     "RepositoryRead",
     "RepositorySubmissionRequest",
     "RepositorySubmissionResponse",
