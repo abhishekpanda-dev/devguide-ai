@@ -1,3 +1,6 @@
+import os
+import shutil
+import stat
 from pathlib import Path
 
 import pytest
@@ -38,3 +41,58 @@ def test_workspace_validation_prevents_escape_and_outside_deletion(tmp_path: Pat
             workspace.validate_path(outside)
 
     assert marker.read_text(encoding="utf-8") == "keep"
+
+
+def test_workspace_cleanup_retries_transient_permission_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = tmp_path / "workspaces"
+    workspace = RepositoryWorkspace(root)
+    workspace.__enter__()
+    created_path = workspace.path
+    original_rmtree = shutil.rmtree
+    attempts = 0
+
+    def transient_rmtree(path: Path, **_kwargs: object) -> None:
+        nonlocal attempts
+        attempts += 1
+        if attempts == 1:
+            raise PermissionError
+        original_rmtree(path)
+
+    monkeypatch.setattr("app.ingestion.workspace.shutil.rmtree", transient_rmtree)
+    monkeypatch.setattr("app.ingestion.workspace.time.sleep", lambda _delay: None)
+
+    workspace.cleanup()
+
+    assert attempts == 2
+    assert not created_path.exists()
+
+
+def test_workspace_cleanup_removes_readonly_file(tmp_path: Path) -> None:
+    root = tmp_path / "workspaces"
+    with RepositoryWorkspace(root) as workspace:
+        created_path = workspace.path
+        readonly = workspace.repository_path / "readonly.txt"
+        readonly.write_text("content", encoding="utf-8")
+        os.chmod(readonly, stat.S_IREAD)
+
+    assert not created_path.exists()
+
+
+def test_workspace_cleanup_path_escape_fails_closed(tmp_path: Path) -> None:
+    root = tmp_path / "workspaces"
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    marker = outside / "keep.txt"
+    marker.write_text("keep", encoding="utf-8")
+    workspace = RepositoryWorkspace(root)
+    workspace.__enter__()
+    created_path = workspace.path
+    workspace._workspace_path = outside
+
+    with pytest.raises(RepositoryWorkspaceError):
+        workspace.cleanup()
+
+    assert marker.read_text(encoding="utf-8") == "keep"
+    shutil.rmtree(created_path)

@@ -1,9 +1,16 @@
+import os
 import shutil
+import stat
 import tempfile
+import time
+from collections.abc import Callable
 from pathlib import Path
 from types import TracebackType
 
 from app.core.exceptions import RepositoryWorkspaceError
+
+CLEANUP_ATTEMPTS = 3
+CLEANUP_RETRY_DELAY_SECONDS = 0.05
 
 
 class RepositoryWorkspace:
@@ -73,10 +80,27 @@ class RepositoryWorkspace:
         resolved = self.validate_path(path)
         if resolved == self._root:
             raise RepositoryWorkspaceError
-        try:
-            shutil.rmtree(resolved)
-        except OSError as exc:
-            raise RepositoryWorkspaceError from exc
+        for attempt in range(CLEANUP_ATTEMPTS):
+            try:
+                shutil.rmtree(resolved, onerror=self._remove_readonly)
+                return
+            except OSError as exc:
+                if attempt == CLEANUP_ATTEMPTS - 1:
+                    raise RepositoryWorkspaceError from exc
+                time.sleep(CLEANUP_RETRY_DELAY_SECONDS)
+
+    def _remove_readonly(
+        self,
+        function: Callable[[str], object],
+        path: str,
+        _exc_info: tuple[type[BaseException], BaseException, TracebackType | None],
+    ) -> None:
+        candidate = Path(path)
+        if candidate.is_symlink():
+            raise RepositoryWorkspaceError
+        self.validate_path(candidate)
+        os.chmod(path, stat.S_IWRITE | stat.S_IREAD | stat.S_IEXEC)
+        function(path)
 
     def _cleanup_created_path(self) -> None:
         if self._workspace_path is None:
