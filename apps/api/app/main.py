@@ -2,6 +2,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.router import router as v1_router
 from app.core.config import Settings, get_settings
@@ -39,6 +40,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     application.state.settings = resolved_settings
     application.state.session_factory = create_session_factory(resolved_settings)
     application.add_middleware(CorrelationIdMiddleware)
+    application.add_middleware(
+        CORSMiddleware,
+        allow_origins=list(resolved_settings.cors_allowed_origins),
+        allow_methods=["GET", "POST"],
+        allow_headers=["Content-Type", "X-Correlation-ID"],
+    )
     register_exception_handlers(application)
     application.include_router(v1_router, prefix="/api/v1")
     return application

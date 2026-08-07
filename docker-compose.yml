@@ -1,3 +1,37 @@
-# DevGuide AI container topology placeholder.
-# TODO: Define services only after runtimes, storage, and queueing are approved.
-services: {}
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: devguide-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: devguide
+      POSTGRES_USER: devguide
+      POSTGRES_PASSWORD: devguide
+    ports:
+      - "5433:5432"
+    volumes:
+      - devguide_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U devguide -d devguide"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: devguide-redis
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - devguide_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  devguide_postgres_data:
+  devguide_redis_data:
