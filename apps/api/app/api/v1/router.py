@@ -6,6 +6,7 @@ from fastapi import APIRouter, Query, status
 from app.api.dependencies import (
     AnalysisJobServiceDependency,
     AnalysisSummaryServiceDependency,
+    CodeFindingServiceDependency,
     HealthServiceDependency,
     QuestionReadyAnalysisDependency,
     ReadinessServiceDependency,
@@ -15,9 +16,11 @@ from app.api.dependencies import (
 )
 from app.core.exceptions import AppError, RepositoryQuestionFailedError
 from app.core.middleware import correlation_id_context
+from app.models import FindingCategory, FindingSeverity
 from app.schemas import (
     AnalysisJobRead,
     AnalysisSummary,
+    CodeFindingsResponse,
     RepositoryAgentResponse,
     RepositoryAnalysisListResponse,
     RepositoryQuestionRequest,
@@ -110,6 +113,20 @@ async def get_analysis_summary(
     service: AnalysisSummaryServiceDependency,
 ) -> AnalysisSummary:
     return await service.get_required(analysis_id)
+
+
+@router.get("/analyses/{analysis_id}/findings", response_model=CodeFindingsResponse)
+async def list_code_findings(
+    analysis_id: UUID,
+    service: CodeFindingServiceDependency,
+    severity: FindingSeverity | None = None,
+    category: FindingCategory | None = None,
+    path_prefix: Annotated[str | None, Query(max_length=2048)] = None,
+    limit: Annotated[int, Query(ge=1, le=100)] = 50,
+) -> CodeFindingsResponse:
+    return await service.list_required(
+        analysis_id, severity=severity, category=category, path_prefix=path_prefix, limit=limit
+    )
 
 
 @router.get(

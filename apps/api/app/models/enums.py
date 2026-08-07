@@ -27,3 +27,15 @@ class AnalysisStageStatus(StrEnum):
     COMPLETED = "completed"
     FAILED = "failed"
     SKIPPED = "skipped"
+
+
+class FindingSeverity(StrEnum):
+    INFO = "info"
+    WARNING = "warning"
+    HIGH = "high"
+
+
+class FindingCategory(StrEnum):
+    MAINTAINABILITY = "maintainability"
+    RELIABILITY = "reliability"
+    SECURITY = "security"

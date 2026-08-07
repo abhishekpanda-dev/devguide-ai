@@ -60,6 +60,8 @@ class Settings(BaseSettings):
     ai_maximum_evidence_characters: int = Field(default=30_000, ge=1, le=200_000)
     ai_retry_count: int = Field(default=2, ge=0, le=5)
     ai_temperature: float = Field(default=0.0, ge=0, le=1)
+    findings_large_file_line_threshold: int = Field(default=1000, ge=100, le=100_000)
+    maximum_findings_per_analysis: int = Field(default=2000, ge=1, le=20_000)
 
     @field_validator("anthropic_api_key", mode="before")
     @classmethod

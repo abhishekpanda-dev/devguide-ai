@@ -260,6 +260,15 @@ class AnalysisSummaryNotReadyError(AppError):
         )
 
 
+class CodeFindingsNotReadyError(AppError):
+    def __init__(self) -> None:
+        super().__init__(
+            code="analysis_not_ready",
+            message="Code findings are not available for this analysis yet.",
+            status_code=status.HTTP_409_CONFLICT,
+        )
+
+
 class RepositoryQuestionInvalidError(AppError):
     def __init__(self) -> None:
         super().__init__(

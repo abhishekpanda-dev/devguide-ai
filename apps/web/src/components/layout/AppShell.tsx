@@ -16,6 +16,7 @@ export function AppShell() {
             <NavLink to="/">Submit repository</NavLink>
             {repositoryId && <NavLink to={`/repositories/${repositoryId}`}>Repository</NavLink>}
             {analysisId && <NavLink to={`/analyses/${analysisId}/ask`}>Ask DevGuide</NavLink>}
+            {analysisId && <NavLink to={`/analyses/${analysisId}/findings`}>Findings</NavLink>}
           </nav>
         </div>
       </header>

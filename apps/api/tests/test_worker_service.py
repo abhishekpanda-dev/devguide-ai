@@ -9,12 +9,14 @@ from sqlalchemy.pool import StaticPool
 
 from app.core.exceptions import RepositoryCloneFailedError, RepositoryWorkspaceError
 from app.db.base import Base
+from app.findings import DeterministicFindingsAnalyzer, FindingsAnalysisResult
 from app.ingestion import RepositoryWorkspace
 from app.models import AnalysisJob, AnalysisJobStatus, AnalysisStageStatus, Repository
 from app.parser import RepositoryParser, RepositoryParseResult
 from app.repositories import (
     AnalysisJobRepository,
     AnalysisStageRepository,
+    CodeFindingRepository,
     ParsedRepository,
     RepositoryRepository,
 )
@@ -95,7 +97,11 @@ async def test_successful_parsing_completes_analysis_as_ready(
     stages = await AnalysisStageRepository(worker_session).list_for_analysis_job(job.id)
     refreshed = await AnalysisJobRepository(worker_session).get_by_id(job.id)
     assert ingestion.calls == 1
-    assert [stage.name for stage in stages] == ["repository_ingestion", "repository_parsing"]
+    assert [stage.name for stage in stages] == [
+        "repository_ingestion",
+        "repository_parsing",
+        "code_findings",
+    ]
     assert all(stage.status is AnalysisStageStatus.COMPLETED for stage in stages)
     assert all(stage.progress_percent == 100 for stage in stages)
     assert all(stage.heartbeat_at is not None for stage in stages)
@@ -110,6 +116,7 @@ async def test_successful_parsing_completes_analysis_as_ready(
     assert result.analysis_status is AnalysisJobStatus.COMPLETED
     assert result.progress_percent == 100
     assert ingestion.workspace_path is not None and not ingestion.workspace_path.exists()
+    assert await CodeFindingRepository(worker_session).list_for_analysis(job.id) is not None
 
 
 async def test_non_queued_job_is_not_claimed(worker_session: AsyncSession) -> None:
@@ -198,7 +205,7 @@ async def test_stage_attempt_increments_when_pending_stage_exists(
     ingestion_stage = await stages.get_by_name(job.id, "repository_ingestion")
     assert ingestion_stage is not None
     assert ingestion_stage.attempt == 2
-    assert result.stage_name == "repository_parsing"
+    assert result.stage_name == "code_findings"
 
 
 async def test_ingestion_failure_marks_stage_and_analysis_failed(
@@ -232,6 +239,11 @@ class FailingParser(RepositoryParser):
         raise ValueError("forced parser failure")
 
 
+class FailingFindingsAnalyzer(DeterministicFindingsAnalyzer):
+    def analyze(self, result: RepositoryParseResult, *, commit_sha: str) -> FindingsAnalysisResult:
+        raise ValueError("forced findings failure")
+
+
 async def test_parsing_failure_marks_parsing_stage_failed_and_cleans_workspace(
     worker_session: AsyncSession,
 ) -> None:
@@ -248,3 +260,27 @@ async def test_parsing_failure_marks_parsing_stage_failed_and_cleans_workspace(
     assert parsing is not None and parsing.status is AnalysisStageStatus.FAILED
     assert refreshed is not None and refreshed.status is AnalysisJobStatus.FAILED
     assert ingestion.workspace_path is not None and not ingestion.workspace_path.exists()
+
+
+async def test_findings_failure_preserves_persisted_parser_data(
+    worker_session: AsyncSession,
+) -> None:
+    _repository, job = await queued_job(worker_session)
+    result = await AnalysisWorkerService(
+        session=worker_session,
+        ingestion=FakeIngestion(),
+        findings_analyzer=FailingFindingsAnalyzer(
+            large_file_line_threshold=1000, maximum_findings=2000
+        ),
+    ).process(job.id)
+
+    stage = await AnalysisStageRepository(worker_session).get_by_name(job.id, "code_findings")
+    parsed = await ParsedRepository(worker_session).get_summary(job.id)
+    refreshed = await AnalysisJobRepository(worker_session).get_by_id(job.id)
+
+    assert result.error_code == "analysis_stage_failed"
+    assert stage is not None and stage.status is AnalysisStageStatus.FAILED
+    assert refreshed is not None and refreshed.status is AnalysisJobStatus.FAILED
+    assert parsed is not None
+    assert parsed.files_analyzed == 1
+    assert parsed.chunks_created == 1

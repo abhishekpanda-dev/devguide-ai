@@ -36,5 +36,8 @@ All notable changes will be documented here. The project intends to follow [Keep
   bounded generation settings, centralized provider selection, safe timeout/failure translation,
   trusted-evidence citation reconstruction, and fully offline provider-selection tests. The mock
   provider remains the default.
+- Analysis-scoped deterministic code findings with bounded static rules, persisted evidence and
+  limitations, idempotent worker integration, trusted commit-pinned GitHub links, a filtered API,
+  and a frontend findings page with loading, empty, error, and accessible severity states.
 
 TODO: Define the first release milestone and versioning policy.

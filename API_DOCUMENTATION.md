@@ -125,6 +125,14 @@ maximum output tokens, temperature, and bounded transient retry count use
 `DEVGUIDE_AI_RETRY_COUNT`. A missing key returns `ai_provider_not_configured`; provider details
 and keys are never included in the public error envelope.
 
+## `GET /api/v1/analyses/{analysis_id}/findings`
+
+Returns persisted deterministic findings for exactly one analysis. Optional query parameters are `severity` (`info`, `warning`, or `high`), `category` (`maintainability`, `reliability`, or `security`), `path_prefix` (validated repository-relative path), and `limit` (1–500). The response includes matching items, total matching count, whole-analysis severity counts, and parser/analyzer limitations.
+
+Each item contains a stable rule ID, severity, category, title, repository-relative path, one-based inclusive line range, bounded evidence excerpt, explanation, suggested action, confidence, and an exact GitHub blob link pinned to the analyzed commit. Links are derived from trusted stored repository metadata; repository content cannot supply their host or commit.
+
+The current deterministic rules cover TODO/FIXME/HACK markers, large application source files, and selected Python constructs: `eval`, `exec`, broad/empty exception handlers, `subprocess` with shell mode, likely hardcoded credentials, debug enablement, and HTTP requests without explicit timeouts. Dependency lockfiles, generated/minified artifacts, source maps, and files under common dependency or build-output directories are excluded only from the large-file rule. These findings are bounded review leads and do not constitute a complete security analysis. No repository code is executed and no AI provider is called. A missing analysis returns `analysis_not_found` (404); missing findings data returns `analysis_not_ready` (409).
+
 ## `GET /api/v1/repositories/{repository_id}`
 
 Returns a repository record or `repository_not_found` with `404`.

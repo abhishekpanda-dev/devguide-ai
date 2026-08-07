@@ -51,9 +51,14 @@ export function RepositoryDashboardPage() {
           <p className="lede">Observed repository metadata and available analysis state.</p>
         </div>
         {latest && (
-          <Link className="button" to={`/analyses/${latest.id}/ask`}>
-            Ask DevGuide
-          </Link>
+          <div className="actions">
+            <Link className="button" to={`/analyses/${latest.id}/ask`}>
+              Ask DevGuide
+            </Link>
+            <Link className="button secondary" to={`/analyses/${latest.id}/findings`}>
+              View code findings
+            </Link>
+          </div>
         )}
       </div>
       <section className="panel">

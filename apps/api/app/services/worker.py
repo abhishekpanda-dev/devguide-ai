@@ -5,7 +5,9 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import Settings
 from app.core.exceptions import RepositoryWorkspaceError
+from app.findings import DeterministicFindingsAnalyzer
 from app.ingestion import RepositoryWorkspace
 from app.models import (
     AnalysisJob,
@@ -17,10 +19,12 @@ from app.models import (
 from app.parser import RepositoryParser
 from app.repositories import AnalysisJobRepository, AnalysisStageRepository, RepositoryRepository
 from app.schemas import RepositoryIngestionResult
+from app.services.finding import CodeFindingPersistenceService
 from app.services.parser_persistence import ParserPersistenceService
 
 INGESTION_STAGE = "repository_ingestion"
 PARSING_STAGE = "repository_parsing"
+FINDINGS_STAGE = "code_findings"
 READY_STAGE = "ready"
 
 
@@ -51,6 +55,9 @@ class AnalysisWorkerService:
         ingestion: IngestionService,
         parser: RepositoryParser | None = None,
         persistence: ParserPersistenceService | None = None,
+        findings_analyzer: DeterministicFindingsAnalyzer | None = None,
+        findings_persistence: CodeFindingPersistenceService | None = None,
+        settings: Settings | None = None,
     ) -> None:
         self._session = session
         self._jobs = AnalysisJobRepository(session)
@@ -59,6 +66,12 @@ class AnalysisWorkerService:
         self._ingestion = ingestion
         self._parser = parser or RepositoryParser()
         self._persistence = persistence or ParserPersistenceService(session)
+        configured = settings or Settings()
+        self._findings_analyzer = findings_analyzer or DeterministicFindingsAnalyzer(
+            large_file_line_threshold=configured.findings_large_file_line_threshold,
+            maximum_findings=configured.maximum_findings_per_analysis,
+        )
+        self._findings_persistence = findings_persistence or CodeFindingPersistenceService(session)
 
     async def process(self, analysis_job_id: UUID) -> WorkerResult:
         job = await self._jobs.get_by_id(analysis_job_id)
@@ -72,16 +85,16 @@ class AnalysisWorkerService:
                 0,
                 "analysis_job_not_found",
             )
-        parsing = await self._stages.get_by_name(job.id, PARSING_STAGE)
-        if parsing is not None and parsing.status is AnalysisStageStatus.COMPLETED:
+        findings_stage = await self._stages.get_by_name(job.id, FINDINGS_STAGE)
+        if findings_stage is not None and findings_stage.status is AnalysisStageStatus.COMPLETED:
             return WorkerResult(
                 job.id,
-                PARSING_STAGE,
-                parsing.status,
+                FINDINGS_STAGE,
+                findings_stage.status,
                 job.status,
-                parsing.attempt,
+                findings_stage.attempt,
                 job.progress_percent,
-                limitations=("Duplicate delivery was ignored because parsing already completed.",),
+                limitations=("Duplicate delivery was ignored because findings already completed.",),
             )
         claimed = await self._jobs.claim_queued(job.id)
         if claimed is None:
@@ -120,18 +133,22 @@ class AnalysisWorkerService:
                     result=parsed,
                 )
                 self._complete_stage(parsing_stage)
+                findings_stage = await self._start_stage(claimed, FINDINGS_STAGE, 60)
+                findings = self._findings_analyzer.analyze(parsed, commit_sha=ingestion.commit_sha)
+                await self._findings_persistence.persist(claimed.id, findings)
+                self._complete_stage(findings_stage)
                 completed = await self._jobs.mark_completed(claimed.id, current_stage=READY_STAGE)
                 if completed is None:
                     raise RuntimeError("Running analysis could not be marked completed.")
                 await self._session.commit()
                 completed_result = WorkerResult(
                     claimed.id,
-                    PARSING_STAGE,
-                    parsing_stage.status,
+                    FINDINGS_STAGE,
+                    findings_stage.status,
                     completed.status,
-                    parsing_stage.attempt,
+                    findings_stage.attempt,
                     completed.progress_percent,
-                    limitations=tuple(parsed.statistics.limitations),
+                    limitations=tuple((*parsed.statistics.limitations, *findings.limitations)),
                 )
             assert completed_result is not None
             return completed_result
@@ -149,19 +166,35 @@ class AnalysisWorkerService:
                         "The temporary repository workspace could not be fully cleaned up.",
                     ),
                 )
-            stage = await self._stages.get_by_name(claimed.id, PARSING_STAGE) or ingestion_stage
+            stage = (
+                await self._stages.get_by_name(claimed.id, FINDINGS_STAGE)
+                or await self._stages.get_by_name(claimed.id, PARSING_STAGE)
+                or ingestion_stage
+            )
             message = (
-                "Repository parsing could not be completed."
-                if stage.name == PARSING_STAGE
-                else "Repository ingestion could not be completed."
+                "Code findings could not be completed."
+                if stage.name == FINDINGS_STAGE
+                else (
+                    "Repository parsing could not be completed."
+                    if stage.name == PARSING_STAGE
+                    else "Repository ingestion could not be completed."
+                )
             )
             return await self._fail(claimed, stage, message)
         except Exception:
-            stage = await self._stages.get_by_name(claimed.id, PARSING_STAGE) or ingestion_stage
+            stage = (
+                await self._stages.get_by_name(claimed.id, FINDINGS_STAGE)
+                or await self._stages.get_by_name(claimed.id, PARSING_STAGE)
+                or ingestion_stage
+            )
             message = (
-                "Repository parsing could not be completed."
-                if stage.name == PARSING_STAGE
-                else "Repository ingestion could not be completed."
+                "Code findings could not be completed."
+                if stage.name == FINDINGS_STAGE
+                else (
+                    "Repository parsing could not be completed."
+                    if stage.name == PARSING_STAGE
+                    else "Repository ingestion could not be completed."
+                )
             )
             return await self._fail(claimed, stage, message)
 
