@@ -161,6 +161,51 @@ class GitNotAvailableError(AppError):
         )
 
 
+class AIProviderNotConfiguredError(AppError):
+    def __init__(self) -> None:
+        super().__init__(
+            code="ai_provider_not_configured",
+            message="The configured AI provider is not available.",
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
+
+
+class AIProviderUnavailableError(AppError):
+    def __init__(self) -> None:
+        super().__init__(
+            code="ai_provider_unavailable",
+            message="The AI provider is temporarily unavailable.",
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
+
+
+class AIProviderTimeoutError(AppError):
+    def __init__(self) -> None:
+        super().__init__(
+            code="ai_provider_timeout",
+            message="The AI provider request timed out.",
+            status_code=status.HTTP_504_GATEWAY_TIMEOUT,
+        )
+
+
+class AIResponseInvalidError(AppError):
+    def __init__(self) -> None:
+        super().__init__(
+            code="ai_response_invalid",
+            message="The AI provider returned an invalid response.",
+            status_code=status.HTTP_502_BAD_GATEWAY,
+        )
+
+
+class GroundedAnswerValidationError(AppError):
+    def __init__(self) -> None:
+        super().__init__(
+            code="grounded_answer_validation_failed",
+            message="The generated answer could not be validated against repository evidence.",
+            status_code=status.HTTP_502_BAD_GATEWAY,
+        )
+
+
 def _response(*, code: str, message: str, status_code: int) -> JSONResponse:
     return JSONResponse(
         status_code=status_code,

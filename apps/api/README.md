@@ -20,6 +20,21 @@ chunk hash, and commit SHA. Invalid evidence fails closed. There is no public se
 endpoint. Semantic embeddings, pgvector, Claude, and final answer generation are not implemented;
 search requires no network or AI provider.
 
+## Internal grounded-answer generation
+
+The API package now includes a typed asynchronous `LLMProvider`, a Claude implementation, and a
+deterministic `MockLLMProvider`. `GroundedAnswerService` converts validated Search Repository
+evidence into bounded, explicitly untrusted prompt data, validates structured provider output,
+and derives citations only from supplied evidence IDs. Invalid or fabricated citations fail
+closed; duplicates are removed. Empty search evidence returns insufficient evidence without a
+provider call.
+
+Claude requests have configured time, output-token, evidence-count, evidence-character, retry,
+and temperature bounds. Only transient failures and timeouts are retried. Provider details are
+translated to stable application errors. Automated tests inject mock clients and never call the
+network. No public chat endpoint or runtime Repository Intelligence Agent orchestration exists;
+embeddings and pgvector are not implemented.
+
 ## Requirements
 
 - Python 3.11+

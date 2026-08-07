@@ -16,7 +16,11 @@ All notable changes will be documented here. The project intends to follow [Keep
 - Analysis-scoped parser persistence and worker integration across ingestion, parsing, durable provenance, and guaranteed workspace cleanup.
 - Internal runtime Search Repository skill foundation with typed analysis-scoped queries,
   deterministic lexical/path/symbol-like ranking, filters, duplicate and overlap removal,
-  validated citations, and explicit insufficient-evidence results. Semantic embeddings, Claude,
-  and answer generation remain unimplemented.
+  validated citations, and explicit insufficient-evidence results. Semantic embeddings remain
+  unimplemented.
+- Internal typed `LLMProvider`, asynchronous Claude provider, deterministic mock provider,
+  injection-resistant bounded prompts, structured grounded-answer validation, evidence-derived
+  citations, safe provider errors, and bounded transient retries. No public chat endpoint or full
+  Repository Intelligence Agent orchestration is included.
 
 TODO: Define the first release milestone and versioning policy.

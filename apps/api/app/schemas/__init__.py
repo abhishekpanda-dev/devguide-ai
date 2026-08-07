@@ -6,6 +6,13 @@ from app.schemas.analysis import (
     AnalysisStageCreate,
     AnalysisStageRead,
 )
+from app.schemas.grounded_answer import (
+    EvidenceQuality,
+    GroundedAnswer,
+    GroundedAnswerRequest,
+    GroundedCitation,
+    TokenUsage,
+)
 from app.schemas.ingestion import RepositoryIngestionResult
 from app.schemas.parser import (
     CodeChunkRead,
@@ -33,6 +40,10 @@ __all__ = [
     "AnalysisStageCreate",
     "AnalysisStageRead",
     "CodeChunkRead",
+    "EvidenceQuality",
+    "GroundedAnswer",
+    "GroundedAnswerRequest",
+    "GroundedCitation",
     "MatchedChannel",
     "ParserPersistenceResult",
     "RepositoryAnalysisListResponse",
@@ -47,4 +58,5 @@ __all__ = [
     "SearchCoverage",
     "SearchRepositoryRequest",
     "SearchRepositoryResult",
+    "TokenUsage",
 ]

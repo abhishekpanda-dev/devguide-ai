@@ -1,5 +1,16 @@
 # Repository Intelligence Agent
 
+## Runtime foundation status
+
+The internal `LLMProvider`, Claude provider, deterministic `MockLLMProvider`, bounded grounded
+prompt builder, structured response validation, and grounded-answer service are implemented.
+They consume validated deterministic lexical evidence from Search Repository. Automated tests do
+not call Claude or require an API key.
+
+Full Repository Intelligence Agent orchestration remains unimplemented. There is no public chat
+endpoint, and embeddings, pgvector, repository overview generation, and multi-agent behavior are
+not implemented.
+
 ## Document status
 
 **Status:** Planned custom-agent specification; no runtime implementation exists.

@@ -62,6 +62,23 @@ Citation validation fails closed on invalid paths, bounds, hashes, or commit pro
 embeddings, pgvector, Claude, network access, learned reranking, or final answer generation are
 involved.
 
+## Internal grounded-answer generation
+
+There is no public chat route. The internal `GroundedAnswerService` accepts a question and a
+Search Repository result, bounds validated lexical evidence by configured item and character
+limits, and calls the typed asynchronous `LLMProvider`. Provider output is structured and contains
+answer text, cited chunk IDs, evidence quality, insufficient-evidence state, limitations, and safe
+usage/finish metadata when available.
+
+The Claude provider uses asynchronous requests, configured timeouts and output limits, and retries
+only timeouts or transient HTTP statuses. Missing configuration, unavailable providers, timeouts,
+malformed responses, and grounding failures map to stable application errors without exposing raw
+provider exceptions. Repository content is delimited as untrusted data and never enters system
+instructions. Citations are reconstructed from the supplied evidence, so paths, ranges, and hashes
+cannot be supplied or altered by the model. Automated tests use `MockLLMProvider` or a mocked
+Claude client; no real API request is made. Embeddings, pgvector, and agent orchestration remain
+unimplemented.
+
 ## `GET /api/v1/repositories/{repository_id}`
 
 Returns a repository record or `repository_not_found` with `404`.
