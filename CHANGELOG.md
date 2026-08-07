@@ -22,5 +22,9 @@ All notable changes will be documented here. The project intends to follow [Keep
   injection-resistant bounded prompts, structured grounded-answer validation, evidence-derived
   citations, safe provider errors, and bounded transient retries. No public chat endpoint or full
   Repository Intelligence Agent orchestration is included.
+- Bounded runtime Repository Intelligence Agent foundation combining analysis-scoped deterministic
+  Search Repository retrieval with Grounded Answer generation, independent evidence and citation
+  validation, deterministic deduplication and ordering, insufficient-evidence short-circuiting,
+  dependency injection, safe agent errors, and external-service-free tests.
 
 TODO: Define the first release milestone and versioning policy.

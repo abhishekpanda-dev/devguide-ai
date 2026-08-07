@@ -58,6 +58,8 @@ class GroundedAnswerService:
         )
         if result.insufficient_evidence and citations:
             raise GroundedAnswerValidationError
+        if not result.insufficient_evidence and not citations:
+            raise GroundedAnswerValidationError
         if not result.answer_text.strip() and not result.insufficient_evidence:
             raise GroundedAnswerValidationError
         return GroundedAnswer(

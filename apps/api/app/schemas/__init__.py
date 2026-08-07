@@ -21,6 +21,11 @@ from app.schemas.parser import (
     RepositoryParseSummary,
 )
 from app.schemas.repository import RepositoryCreate, RepositoryRead
+from app.schemas.repository_agent import (
+    RepositoryAgentCitation,
+    RepositoryAgentRequest,
+    RepositoryAgentResponse,
+)
 from app.schemas.retrieval import (
     MatchedChannel,
     RepositoryEvidence,
@@ -46,6 +51,9 @@ __all__ = [
     "GroundedCitation",
     "MatchedChannel",
     "ParserPersistenceResult",
+    "RepositoryAgentCitation",
+    "RepositoryAgentRequest",
+    "RepositoryAgentResponse",
     "RepositoryAnalysisListResponse",
     "RepositoryCreate",
     "RepositoryEvidence",

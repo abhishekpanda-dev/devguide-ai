@@ -35,6 +35,20 @@ translated to stable application errors. Automated tests inject mock clients and
 network. No public chat endpoint or runtime Repository Intelligence Agent orchestration exists;
 embeddings and pgvector are not implemented.
 
+## Internal Repository Intelligence Agent
+
+`RepositoryIntelligenceAgent.run` now provides the internal bounded question-answering workflow.
+It validates a typed analysis-scoped request, forwards lexical retrieval filters to Search
+Repository, verifies the returned analysis scope, rejects malformed evidence, removes exact
+duplicates, applies deterministic ordering and limits, and calls Grounded Answer only when useful
+evidence remains. Final citations are checked against the retrieved chunk, path, line range, hash,
+and repository-file ID before return.
+
+Dependencies are injected, and an internal factory wires Search Repository and Grounded Answer to
+either the configured Claude provider or an injected provider. Agent tests use
+`MockLLMProvider` with typed fakes and require no PostgreSQL, Redis, GitHub, network, or API key.
+No public chat endpoint exists, and semantic embeddings remain unimplemented.
+
 ## Requirements
 
 - Python 3.11+

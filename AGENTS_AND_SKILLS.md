@@ -4,14 +4,15 @@
 
 ## Document status
 
-**Status:** Search Repository deterministic lexical runtime foundation and internal Claude-backed
-grounded-answer generation foundation implemented; Repository Intelligence Agent orchestration
-remains incomplete.
+**Status:** Search Repository deterministic lexical runtime foundation, internal Claude-backed
+grounded-answer generation, and the bounded runtime Repository Intelligence Agent foundation are
+implemented.
 
 The runtime skill is internal and analysis-scoped. It searches persisted chunks by exact and
 partial path, phrase, token overlap, simple class/function/method/configuration-key patterns,
 language, and path prefix; then returns validated citations or an explicit insufficient-evidence
-result. Semantic embeddings, pgvector, repository overview generation, and final agent
+result. The runtime agent combines that skill with the Grounded Answer service through injected
+dependencies. Semantic embeddings, pgvector, repository overview generation, and public chat
 orchestration are not implemented. Claude is available behind the internal typed
 `LLMProvider`; automated tests use the deterministic `MockLLMProvider` and make no network calls.
 No public chat endpoint exists.
@@ -67,7 +68,7 @@ flowchart LR
 
 | Requirement | Artifact | Documentation status | Runtime status |
 | --- | --- | --- | --- |
-| At least one custom agent | `agents/repository_intelligence_agent.md` | Complete specification | Not implemented |
+| At least one custom agent | `agents/repository_intelligence_agent.md` | Complete specification | Bounded question-answering foundation implemented and tested |
 | At least one custom skill | `skills/search_repository/SKILL.md` | Complete specification with valid skill frontmatter | Deterministic lexical foundation implemented and tested |
 | Agent and skill documented centrally | `AGENTS_AND_SKILLS.md` | Complete catalog and cooperation model | Not applicable |
 | Both committed to repository | The three files in this change | Ready to commit | Not yet committed by this task |
@@ -77,7 +78,7 @@ The documentation checkpoint is satisfied when these files are committed. The wo
 ## Future runtime implementation checklist
 
 - [ ] Define versioned Pydantic request and result models from the documented JSON schemas.
-- [ ] Implement the agent as a bounded application workflow, not an autonomous shell agent.
+- [x] Implement the agent as a bounded application workflow, not an autonomous shell agent.
 - [ ] Implement a fixed tool registry that rejects unknown or unauthorized tools.
 - [ ] Implement analysis-ID and commit-SHA repository isolation on every retrieval query.
 - [ ] Implement path, symbol, lexical, semantic, and dependency retrieval adapters.
