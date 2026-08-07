@@ -6,10 +6,15 @@ from httpx import AsyncClient
 
 from app.api.dependencies import (
     get_analysis_job_service,
+    get_analysis_summary_service,
     get_repository_service,
     get_submission_service,
 )
-from app.core.exceptions import AnalysisNotFoundError, RepositoryNotFoundError
+from app.core.exceptions import (
+    AnalysisNotFoundError,
+    AnalysisSummaryNotReadyError,
+    RepositoryNotFoundError,
+)
 from app.models import (
     AnalysisJob,
     AnalysisJobStatus,
@@ -17,6 +22,7 @@ from app.models import (
     RepositorySourceType,
     RepositoryStatus,
 )
+from app.schemas import AnalysisSummary
 from app.services.repository_url import normalize_repository_url
 from app.services.submission import RepositorySubmissionResult
 
@@ -104,6 +110,31 @@ class MissingAnalysisService:
         raise AnalysisNotFoundError
 
 
+class FakeAnalysisSummaryService:
+    async def get_required(self, analysis_id: UUID) -> AnalysisSummary:
+        return AnalysisSummary(
+            analysis_job_id=analysis_id,
+            files_analyzed=2,
+            chunks_created=3,
+            languages=[{"language": "python", "file_count": 2, "line_count": 10}],
+            total_lines=10,
+            test_file_count=1,
+            documentation_file_count=0,
+            skipped_file_count=1,
+            limitations=["one file was skipped"],
+        )
+
+
+class MissingAnalysisSummaryService:
+    async def get_required(self, analysis_id: UUID) -> AnalysisSummary:
+        raise AnalysisNotFoundError
+
+
+class NotReadyAnalysisSummaryService:
+    async def get_required(self, analysis_id: UUID) -> AnalysisSummary:
+        raise AnalysisSummaryNotReadyError
+
+
 async def test_post_repository_returns_201_documented_response(
     client: AsyncClient, test_app: FastAPI
 ) -> None:
@@ -172,11 +203,63 @@ async def test_get_analysis_returns_200(client: AsyncClient, test_app: FastAPI) 
     assert response.json()["repository_id"] == str(analysis.repository_id)
 
 
+async def test_get_completed_analysis_returns_ready_state(
+    client: AsyncClient, test_app: FastAPI
+) -> None:
+    _repository, analysis = records()
+    analysis.status = AnalysisJobStatus.COMPLETED
+    analysis.current_stage = "ready"
+    analysis.progress_percent = 100
+    analysis.completed_at = datetime.now(UTC)
+    test_app.dependency_overrides[get_analysis_job_service] = lambda: FakeAnalysisService(analysis)
+
+    response = await client.get(f"/api/v1/analyses/{analysis.id}")
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "completed"
+    assert response.json()["current_stage"] == "ready"
+    assert response.json()["progress_percent"] == 100
+    assert response.json()["completed_at"] is not None
+    assert response.json()["error_code"] is None
+    assert response.json()["error_message"] is None
+
+
 async def test_get_missing_analysis_returns_404(client: AsyncClient, test_app: FastAPI) -> None:
     test_app.dependency_overrides[get_analysis_job_service] = MissingAnalysisService
     response = await client.get(f"/api/v1/analyses/{uuid4()}")
     assert response.status_code == 404
     assert response.json()["error"]["code"] == "analysis_not_found"
+
+
+async def test_get_analysis_summary_returns_persisted_statistics(
+    client: AsyncClient, test_app: FastAPI
+) -> None:
+    test_app.dependency_overrides[get_analysis_summary_service] = FakeAnalysisSummaryService
+    response = await client.get(f"/api/v1/analyses/{uuid4()}/summary")
+
+    assert response.status_code == 200
+    assert response.json()["files_analyzed"] == 2
+    assert response.json()["languages"] == [
+        {"language": "python", "file_count": 2, "line_count": 10}
+    ]
+
+
+async def test_get_missing_analysis_summary_returns_404(
+    client: AsyncClient, test_app: FastAPI
+) -> None:
+    test_app.dependency_overrides[get_analysis_summary_service] = MissingAnalysisSummaryService
+    response = await client.get(f"/api/v1/analyses/{uuid4()}/summary")
+    assert response.status_code == 404
+    assert response.json()["error"]["code"] == "analysis_not_found"
+
+
+async def test_get_analysis_summary_without_parser_data_returns_not_ready(
+    client: AsyncClient, test_app: FastAPI
+) -> None:
+    test_app.dependency_overrides[get_analysis_summary_service] = NotReadyAnalysisSummaryService
+    response = await client.get(f"/api/v1/analyses/{uuid4()}/summary")
+    assert response.status_code == 409
+    assert response.json()["error"]["code"] == "analysis_not_ready"
 
 
 async def test_list_analyses_supports_limit_and_offset(

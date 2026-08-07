@@ -126,6 +126,29 @@ class AnalysisJobRepository:
         )
         return (await self._session.scalars(statement)).one_or_none()
 
+    async def mark_completed(
+        self, analysis_job_id: UUID, *, current_stage: str
+    ) -> AnalysisJob | None:
+        now = datetime.now(UTC)
+        statement = (
+            update(AnalysisJob)
+            .where(
+                AnalysisJob.id == analysis_job_id,
+                AnalysisJob.status == AnalysisJobStatus.RUNNING,
+            )
+            .values(
+                status=AnalysisJobStatus.COMPLETED,
+                current_stage=current_stage,
+                progress_percent=100,
+                error_code=None,
+                error_message=None,
+                completed_at=now,
+                updated_at=now,
+            )
+            .returning(AnalysisJob)
+        )
+        return (await self._session.scalars(statement)).one_or_none()
+
 
 class AnalysisStageRepository:
     def __init__(self, session: AsyncSession) -> None:

@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router'
+import { getAnalysisSummary } from '../api/analyses'
 import { getRepository, getRepositoryAnalyses } from '../api/repositories'
 import { AnalysisSummary } from '../components/analysis/AnalysisSummary'
 import { ApiErrorMessage } from '../components/feedback/ApiErrorMessage'
@@ -14,6 +15,12 @@ export function RepositoryDashboardPage() {
   const analyses = useQuery({
     queryKey: ['repository-analyses', repositoryId],
     queryFn: () => getRepositoryAnalyses(repositoryId),
+  })
+  const latest = analyses.data?.items[0]
+  const summary = useQuery({
+    queryKey: ['analysis-summary', latest?.id],
+    queryFn: () => getAnalysisSummary(latest?.id ?? ''),
+    enabled: Boolean(latest?.id),
   })
   if (repository.isPending || analyses.isPending)
     return (
@@ -35,7 +42,6 @@ export function RepositoryDashboardPage() {
         <ApiErrorMessage error={analyses.error} fallback="Analysis history could not be loaded." />
       </div>
     )
-  const latest = analyses.data.items[0]
   return (
     <div>
       <div className="pageHeading">
@@ -66,13 +72,84 @@ export function RepositoryDashboardPage() {
           <p>No analysis records were returned for this repository.</p>
         </div>
       )}
-      <aside className="notice">
-        <strong>Analysis limitations</strong>
-        <p>
-          The current API does not expose architecture summaries, language statistics, health
-          scores, or file counts. This dashboard does not infer them.
-        </p>
-      </aside>
+      {latest && (
+        <section className="panel" aria-labelledby="statistics-heading">
+          <h2 id="statistics-heading">Persisted analysis statistics</h2>
+          {summary.isPending ? (
+            <div className="state" role="status">
+              Loading analysis statistics…
+            </div>
+          ) : summary.isError ? (
+            <ApiErrorMessage
+              error={summary.error}
+              fallback="Analysis statistics could not be loaded."
+            />
+          ) : (
+            <>
+              {summary.data.files_analyzed === 0 && (
+                <div className="emptyState">
+                  <h3>No analyzed files</h3>
+                  <p>The parser completed without persisting any supported files.</p>
+                </div>
+              )}
+              <dl className="statisticsGrid">
+                <div>
+                  <dt>Files analyzed</dt>
+                  <dd>{summary.data.files_analyzed}</dd>
+                </div>
+                <div>
+                  <dt>Evidence chunks</dt>
+                  <dd>{summary.data.chunks_created}</dd>
+                </div>
+                <div>
+                  <dt>Total lines</dt>
+                  <dd>{summary.data.total_lines}</dd>
+                </div>
+                <div>
+                  <dt>Test files</dt>
+                  <dd>{summary.data.test_file_count}</dd>
+                </div>
+                <div>
+                  <dt>Documentation files</dt>
+                  <dd>{summary.data.documentation_file_count}</dd>
+                </div>
+                <div>
+                  <dt>Skipped files</dt>
+                  <dd>{summary.data.skipped_file_count}</dd>
+                </div>
+              </dl>
+              <div className="languageSummary">
+                <h3>Detected languages</h3>
+                {summary.data.languages.length > 0 ? (
+                  <ul>
+                    {summary.data.languages.map((item) => (
+                      <li key={item.language}>
+                        <strong>{item.language}</strong>
+                        <span>
+                          {item.file_count} {item.file_count === 1 ? 'file' : 'files'} ·{' '}
+                          {item.line_count} lines
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>No supported languages were detected.</p>
+                )}
+              </div>
+              {summary.data.limitations.length > 0 && (
+                <aside className="limitations">
+                  <h3>Parser limitations</h3>
+                  <ul>
+                    {summary.data.limitations.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                </aside>
+              )}
+            </>
+          )}
+        </section>
+      )}
     </div>
   )
 }

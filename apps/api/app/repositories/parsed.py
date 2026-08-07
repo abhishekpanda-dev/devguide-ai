@@ -1,10 +1,29 @@
 from dataclasses import dataclass
 from uuid import UUID
 
-from sqlalchemy import delete, select
+from sqlalchemy import case, delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import CodeChunk, RepositoryFile
+from app.models import AnalysisParseMetadata, CodeChunk, RepositoryFile
+
+
+@dataclass(frozen=True, slots=True)
+class LanguageStatistics:
+    language: str
+    file_count: int
+    line_count: int
+
+
+@dataclass(frozen=True, slots=True)
+class AnalysisSummaryRecord:
+    files_analyzed: int
+    chunks_created: int
+    languages: tuple[LanguageStatistics, ...]
+    total_lines: int
+    test_file_count: int
+    documentation_file_count: int
+    skipped_file_count: int
+    limitations: tuple[str, ...]
 
 
 @dataclass(frozen=True, slots=True)
@@ -28,7 +47,11 @@ class ParsedRepository:
         self._session = session
 
     async def replace(
-        self, analysis_job_id: UUID, files: list[RepositoryFile], chunks: list[CodeChunk]
+        self,
+        analysis_job_id: UUID,
+        files: list[RepositoryFile],
+        chunks: list[CodeChunk],
+        metadata: AnalysisParseMetadata | None = None,
     ) -> None:
         await self._session.execute(
             delete(CodeChunk).where(CodeChunk.analysis_job_id == analysis_job_id)
@@ -36,10 +59,73 @@ class ParsedRepository:
         await self._session.execute(
             delete(RepositoryFile).where(RepositoryFile.analysis_job_id == analysis_job_id)
         )
+        if metadata is not None:
+            await self._session.execute(
+                delete(AnalysisParseMetadata).where(
+                    AnalysisParseMetadata.analysis_job_id == analysis_job_id
+                )
+            )
         self._session.add_all(files)
         await self._session.flush()
         self._session.add_all(chunks)
         await self._session.flush()
+        if metadata is not None:
+            self._session.add(metadata)
+            await self._session.flush()
+
+    async def get_summary(self, analysis_job_id: UUID) -> AnalysisSummaryRecord | None:
+        metadata = await self._session.scalar(
+            select(AnalysisParseMetadata).where(
+                AnalysisParseMetadata.analysis_job_id == analysis_job_id
+            )
+        )
+        if metadata is None:
+            return None
+        file_totals = (
+            await self._session.execute(
+                select(
+                    func.count(RepositoryFile.id),
+                    func.coalesce(func.sum(RepositoryFile.line_count), 0),
+                    func.coalesce(
+                        func.sum(case((RepositoryFile.is_test.is_(True), 1), else_=0)), 0
+                    ),
+                    func.coalesce(
+                        func.sum(
+                            case((RepositoryFile.is_documentation.is_(True), 1), else_=0)
+                        ),
+                        0,
+                    ),
+                ).where(RepositoryFile.analysis_job_id == analysis_job_id)
+            )
+        ).one()
+        chunk_count = await self._session.scalar(
+            select(func.count(CodeChunk.id)).where(CodeChunk.analysis_job_id == analysis_job_id)
+        )
+        language_rows = (
+            await self._session.execute(
+                select(
+                    RepositoryFile.language,
+                    func.count(RepositoryFile.id),
+                    func.sum(RepositoryFile.line_count),
+                )
+                .where(RepositoryFile.analysis_job_id == analysis_job_id)
+                .group_by(RepositoryFile.language)
+                .order_by(RepositoryFile.language)
+            )
+        ).all()
+        return AnalysisSummaryRecord(
+            files_analyzed=int(file_totals[0]),
+            chunks_created=int(chunk_count or 0),
+            languages=tuple(
+                LanguageStatistics(language=row[0], file_count=int(row[1]), line_count=int(row[2]))
+                for row in language_rows
+            ),
+            total_lines=int(file_totals[1]),
+            test_file_count=int(file_totals[2]),
+            documentation_file_count=int(file_totals[3]),
+            skipped_file_count=metadata.skipped_file_count,
+            limitations=tuple(metadata.limitations),
+        )
 
     async def list_files(self, analysis_job_id: UUID) -> list[RepositoryFile]:
         return list(

@@ -15,7 +15,12 @@ from app.core.exceptions import (
 from app.db.session import get_db_session
 from app.models import AnalysisJob, AnalysisJobStatus
 from app.repositories import AnalysisJobRepository, ParsedRepository, RepositoryRepository
-from app.services import AnalysisJobService, RepositoryService, RepositorySubmissionService
+from app.services import (
+    AnalysisJobService,
+    AnalysisSummaryService,
+    RepositoryService,
+    RepositorySubmissionService,
+)
 from app.services.grounded_answer import GroundedAnswerService
 from app.services.health import HealthService
 from app.services.readiness import DatabaseReadinessService, ReadinessService
@@ -140,6 +145,13 @@ def get_analysis_job_service(
     return AnalysisJobService(session, repository)
 
 
+def get_analysis_summary_service(
+    jobs: AnalysisJobRepositoryDependency,
+    parsed: ParsedRepositoryDependency,
+) -> AnalysisSummaryService:
+    return AnalysisSummaryService(jobs, parsed)
+
+
 def get_submission_service(
     request: Request,
     session: AsyncSessionDependency,
@@ -157,6 +169,9 @@ def get_submission_service(
 
 RepositoryServiceDependency = Annotated[RepositoryService, Depends(get_repository_service)]
 AnalysisJobServiceDependency = Annotated[AnalysisJobService, Depends(get_analysis_job_service)]
+AnalysisSummaryServiceDependency = Annotated[
+    AnalysisSummaryService, Depends(get_analysis_summary_service)
+]
 SubmissionServiceDependency = Annotated[
     RepositorySubmissionService, Depends(get_submission_service)
 ]

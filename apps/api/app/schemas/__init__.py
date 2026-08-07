@@ -3,8 +3,10 @@
 from app.schemas.analysis import (
     AnalysisJobCreate,
     AnalysisJobRead,
+    AnalysisLanguageSummary,
     AnalysisStageCreate,
     AnalysisStageRead,
+    AnalysisSummary,
 )
 from app.schemas.grounded_answer import (
     EvidenceQuality,
@@ -43,8 +45,10 @@ from app.schemas.submission import (
 __all__ = [
     "AnalysisJobCreate",
     "AnalysisJobRead",
+    "AnalysisLanguageSummary",
     "AnalysisStageCreate",
     "AnalysisStageRead",
+    "AnalysisSummary",
     "CodeChunkRead",
     "EvidenceQuality",
     "GroundedAnswer",

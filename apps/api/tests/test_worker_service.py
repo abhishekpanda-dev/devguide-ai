@@ -7,7 +7,7 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import StaticPool
 
-from app.core.exceptions import RepositoryCloneFailedError
+from app.core.exceptions import RepositoryCloneFailedError, RepositoryWorkspaceError
 from app.db.base import Base
 from app.ingestion import RepositoryWorkspace
 from app.models import AnalysisJob, AnalysisJobStatus, AnalysisStageStatus, Repository
@@ -83,7 +83,7 @@ async def queued_job(session: AsyncSession) -> tuple[Repository, AnalysisJob]:
     return repository, job
 
 
-async def test_queued_job_runs_ingestion_stage_and_remains_running(
+async def test_successful_parsing_completes_analysis_as_ready(
     worker_session: AsyncSession,
 ) -> None:
     _repository, job = await queued_job(worker_session)
@@ -92,18 +92,23 @@ async def test_queued_job_runs_ingestion_stage_and_remains_running(
         job.id
     )
 
-    stage = (await AnalysisStageRepository(worker_session).list_for_analysis_job(job.id))[0]
+    stages = await AnalysisStageRepository(worker_session).list_for_analysis_job(job.id)
     refreshed = await AnalysisJobRepository(worker_session).get_by_id(job.id)
     assert ingestion.calls == 1
-    assert stage.status is AnalysisStageStatus.COMPLETED
-    assert stage.attempt == 1
-    assert stage.progress_percent == 100
-    assert stage.heartbeat_at is not None
-    assert stage.completed_at is not None
+    assert [stage.name for stage in stages] == ["repository_ingestion", "repository_parsing"]
+    assert all(stage.status is AnalysisStageStatus.COMPLETED for stage in stages)
+    assert all(stage.progress_percent == 100 for stage in stages)
+    assert all(stage.heartbeat_at is not None for stage in stages)
+    assert all(stage.completed_at is not None for stage in stages)
     assert refreshed is not None
-    assert refreshed.status is AnalysisJobStatus.RUNNING
-    assert refreshed.progress_percent == 40
-    assert result.progress_percent == 40
+    assert refreshed.status is AnalysisJobStatus.COMPLETED
+    assert refreshed.current_stage == "ready"
+    assert refreshed.progress_percent == 100
+    assert refreshed.completed_at is not None
+    assert refreshed.error_code is None
+    assert refreshed.error_message is None
+    assert result.analysis_status is AnalysisJobStatus.COMPLETED
+    assert result.progress_percent == 100
     assert ingestion.workspace_path is not None and not ingestion.workspace_path.exists()
 
 
@@ -132,9 +137,42 @@ async def test_duplicate_delivery_does_not_rerun_completed_stage(
 
     assert ingestion.calls == 1
     assert duplicate.stage_status is AnalysisStageStatus.COMPLETED
+    assert duplicate.analysis_status is AnalysisJobStatus.COMPLETED
+    assert duplicate.progress_percent == 100
     assert duplicate.limitations
     assert len(await ParsedRepository(worker_session).list_files(job.id)) == 1
     assert len(await ParsedRepository(worker_session).list_chunks(job.id)) == 1
+
+
+class CleanupFailingWorkspace(RepositoryWorkspace):
+    def cleanup(self) -> None:
+        super().cleanup()
+        raise RepositoryWorkspaceError
+
+
+class CleanupFailingIngestion(FakeIngestion):
+    def create_workspace(self) -> RepositoryWorkspace:
+        return CleanupFailingWorkspace(Path(gettempdir()) / "devguide-worker-cleanup-tests")
+
+
+async def test_cleanup_limitation_preserves_completed_analysis(
+    worker_session: AsyncSession,
+) -> None:
+    _repository, job = await queued_job(worker_session)
+    result = await AnalysisWorkerService(
+        session=worker_session, ingestion=CleanupFailingIngestion()
+    ).process(job.id)
+
+    refreshed = await AnalysisJobRepository(worker_session).get_by_id(job.id)
+    assert refreshed is not None
+    assert refreshed.status is AnalysisJobStatus.COMPLETED
+    assert refreshed.current_stage == "ready"
+    assert refreshed.progress_percent == 100
+    assert refreshed.completed_at is not None
+    assert refreshed.error_code is None
+    assert refreshed.error_message is None
+    assert result.analysis_status is AnalysisJobStatus.COMPLETED
+    assert "could not be fully cleaned up" in result.limitations[-1]
 
 
 async def test_stage_attempt_increments_when_pending_stage_exists(

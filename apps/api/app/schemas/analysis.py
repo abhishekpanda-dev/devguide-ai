@@ -61,3 +61,25 @@ class AnalysisStageRead(BaseModel):
     heartbeat_at: AwareDatetime | None
     created_at: AwareDatetime
     updated_at: AwareDatetime
+
+
+class AnalysisLanguageSummary(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    language: str
+    file_count: int = Field(ge=0)
+    line_count: int = Field(ge=0)
+
+
+class AnalysisSummary(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    analysis_job_id: UUID
+    files_analyzed: int = Field(ge=0)
+    chunks_created: int = Field(ge=0)
+    languages: list[AnalysisLanguageSummary]
+    total_lines: int = Field(ge=0)
+    test_file_count: int = Field(ge=0)
+    documentation_file_count: int = Field(ge=0)
+    skipped_file_count: int = Field(ge=0)
+    limitations: list[str]

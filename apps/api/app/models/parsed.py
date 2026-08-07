@@ -100,3 +100,18 @@ class CodeChunk(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC)
     )
+
+
+class AnalysisParseMetadata(TimestampMixin, Base):
+    __tablename__ = "analysis_parse_metadata"
+    __table_args__ = (
+        CheckConstraint("skipped_file_count >= 0", name="skipped_file_count_nonnegative"),
+    )
+
+    analysis_job_id: Mapped[UUID] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("analysis_jobs.id", ondelete="RESTRICT"),
+        primary_key=True,
+    )
+    skipped_file_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    limitations: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
