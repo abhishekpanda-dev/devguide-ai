@@ -23,6 +23,7 @@ from app.schemas.retrieval import (
     SearchCoverage,
     SearchRepositoryResult,
 )
+from app.schemas.structure_evidence import StructureEvidence
 from app.services.grounded_answer import GroundedAnswerService
 
 
@@ -67,6 +68,7 @@ async def test_mock_provider_is_deterministic_and_records_request() -> None:
     request = ProviderGroundedAnswerRequest(
         question="question",
         evidence=(item,),
+        structure_evidence=None,
         system_instructions="system",
         user_prompt="prompt",
         output_schema={},
@@ -124,6 +126,27 @@ async def test_prompt_marks_injected_repository_content_untrusted() -> None:
     assert "<UNTRUSTED_EVIDENCE>" in request.user_prompt
     assert injected.excerpt in request.user_prompt
     assert injected.excerpt not in request.system_instructions
+
+
+async def test_architecture_prompt_separates_trusted_structure_from_untrusted_code() -> None:
+    provider = MockLLMProvider()
+    structure = StructureEvidence(
+        analysis_job_id=uuid4(),
+        language_counts={"python": 3},
+        limitations=("Dependency edges are static relationships.",),
+    )
+    result = await GroundedAnswerService(provider, Settings(environment="test")).answer(
+        question="Describe the architecture",
+        search_result=search_result(evidence()),
+        structure_evidence=structure,
+    )
+    request = provider.requests[0]
+    assert result.answer == "The supplied evidence supports this deterministic mock answer."
+    assert request.structure_evidence == structure
+    assert "<TRUSTED_STRUCTURE_FACTS>" in request.user_prompt
+    assert '"python": 3' in request.user_prompt
+    assert "static" in request.system_instructions.lower()
+    assert "runtime behavior" in request.system_instructions.lower()
 
 
 async def test_evidence_count_and_character_budgets_are_enforced() -> None:

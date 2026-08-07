@@ -52,3 +52,9 @@ TODO: Define the first release milestone and versioning policy.
 - Added on-demand, read-only AI suggested fixes for deterministic code findings, with bounded
   trusted evidence, secret redaction, citation validation, mock/Claude provider support, and an
   advisory frontend review panel.
+# Unreleased
+
+- Added deterministic architecture/dependency intent routing for Ask DevGuide.
+- Added bounded, server-derived structure evidence alongside existing lexical evidence.
+- Clarified static dependency, probable entry-point, and citation limitations in model prompts and API docs.
+- Preserved the existing question endpoint, offline mock provider, Claude provider path, and citation validation.

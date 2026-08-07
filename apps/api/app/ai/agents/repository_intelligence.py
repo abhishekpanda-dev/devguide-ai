@@ -1,5 +1,6 @@
 from pathlib import PurePosixPath, PureWindowsPath
 from typing import Protocol
+from uuid import UUID
 
 from app.core.exceptions import (
     AppError,
@@ -18,6 +19,7 @@ from app.schemas.retrieval import (
     SearchRepositoryRequest,
     SearchRepositoryResult,
 )
+from app.schemas.structure_evidence import StructureEvidence
 
 
 class SearchSkill(Protocol):
@@ -32,17 +34,33 @@ class GroundedAnswerGenerator(Protocol):
         search_result: SearchRepositoryResult,
         correlation_id: str | None = None,
         maximum_citations: int = 10,
+        structure_evidence: StructureEvidence | None = None,
     ) -> GroundedAnswer: ...
+
+
+class StructureEvidenceRetriever(Protocol):
+    async def retrieve(self, analysis_id: UUID, question: str) -> StructureEvidence | None: ...
 
 
 class RepositoryIntelligenceAgent:
     """Bounded orchestration over retrieval and grounded generation only."""
 
-    def __init__(self, search_skill: SearchSkill, answer_service: GroundedAnswerGenerator) -> None:
+    def __init__(
+        self,
+        search_skill: SearchSkill,
+        answer_service: GroundedAnswerGenerator,
+        structure_evidence: StructureEvidenceRetriever | None = None,
+    ) -> None:
         self._search_skill = search_skill
         self._answer_service = answer_service
+        self._structure_evidence = structure_evidence
 
     async def run(self, request: RepositoryAgentRequest) -> RepositoryAgentResponse:
+        structure = (
+            await self._structure_evidence.retrieve(request.analysis_job_id, request.question)
+            if self._structure_evidence
+            else None
+        )
         search_request = SearchRepositoryRequest(
             analysis_job_id=request.analysis_job_id,
             query=request.question,
@@ -71,7 +89,7 @@ class RepositoryIntelligenceAgent:
                 "returned_count": len(evidence),
             }
         )
-        if not evidence:
+        if not evidence and structure is None:
             return RepositoryAgentResponse(
                 analysis_job_id=request.analysis_job_id,
                 question=request.question,
@@ -87,18 +105,28 @@ class RepositoryIntelligenceAgent:
                 correlation_id=request.correlation_id,
             )
         try:
+            kwargs = {"structure_evidence": structure} if structure is not None else {}
             grounded = await self._answer_service.answer(
                 question=request.question,
                 search_result=normalized_search,
                 correlation_id=request.correlation_id,
                 maximum_citations=request.maximum_citations,
+                **kwargs,
             )
         except AppError as exc:
             raise RepositoryAgentAnswerFailedError from exc
         except Exception as exc:
             raise RepositoryAgentAnswerFailedError from exc
         citations = self._validate_answer_citations(grounded, evidence)
-        limitations = tuple(dict.fromkeys((*search_result.limitations, *grounded.limitations)))
+        limitations = tuple(
+            dict.fromkeys(
+                (
+                    *search_result.limitations,
+                    *(structure.limitations if structure else ()),
+                    *grounded.limitations,
+                )
+            )
+        )
         return RepositoryAgentResponse(
             analysis_job_id=request.analysis_job_id,
             question=request.question,
@@ -111,6 +139,7 @@ class RepositoryIntelligenceAgent:
             model=None if grounded.model == "none" else grounded.model,
             limitations=limitations,
             correlation_id=request.correlation_id,
+            structure_evidence_used=structure is not None,
         )
 
     @staticmethod

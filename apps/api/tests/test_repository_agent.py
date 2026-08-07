@@ -23,6 +23,7 @@ from app.schemas.retrieval import (
     SearchRepositoryRequest,
     SearchRepositoryResult,
 )
+from app.schemas.structure_evidence import StructureEvidence
 from app.services.grounded_answer import GroundedAnswerService
 
 
@@ -213,6 +214,7 @@ class UnsupportedCitationService:
         search_result: SearchRepositoryResult,
         correlation_id: str | None = None,
         maximum_citations: int = 10,
+        structure_evidence: StructureEvidence | None = None,
     ) -> GroundedAnswer:
         return GroundedAnswer(
             answer="Unsupported.",
@@ -240,6 +242,7 @@ class FailingAnswerService:
         search_result: SearchRepositoryResult,
         correlation_id: str | None = None,
         maximum_citations: int = 10,
+        structure_evidence: StructureEvidence | None = None,
     ) -> GroundedAnswer:
         raise AIProviderUnavailableError
 

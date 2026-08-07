@@ -1,8 +1,9 @@
 from dataclasses import dataclass
 from uuid import UUID
 
-from sqlalchemy import delete, desc, select
+from sqlalchemy import delete, desc, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.sql.elements import ColumnElement
 
 from app.models import (
     AnalysisStructureMetadata,
@@ -108,7 +109,13 @@ class RepositoryStructureRepository:
         )
         await self.session.flush()
 
-    async def get(self, analysis_id: UUID) -> StructureRecord | None:
+    async def get(
+        self,
+        analysis_id: UUID,
+        *,
+        edge_limit: int | None = None,
+        related_paths: tuple[str, ...] = (),
+    ) -> StructureRecord | None:
         metadata = await self.session.scalar(
             select(AnalysisStructureMetadata).where(
                 AnalysisStructureMetadata.analysis_job_id == analysis_id
@@ -130,19 +137,29 @@ class RepositoryStructureRepository:
                 .order_by(RepositoryFile.path)
             )
         ).all()
-        edges = tuple(
-            (
-                await self.session.scalars(
-                    select(RepositoryDependencyEdge)
-                    .where(RepositoryDependencyEdge.analysis_job_id == analysis_id)
-                    .order_by(
-                        RepositoryDependencyEdge.source_path,
-                        RepositoryDependencyEdge.source_line,
-                        RepositoryDependencyEdge.target_path,
+        edge_query = select(RepositoryDependencyEdge).where(
+            RepositoryDependencyEdge.analysis_job_id == analysis_id
+        )
+        if related_paths:
+            path_filters: list[ColumnElement[bool]] = []
+            for path in related_paths:
+                path_filters.extend(
+                    (
+                        RepositoryDependencyEdge.source_path == path,
+                        RepositoryDependencyEdge.target_path == path,
+                        RepositoryDependencyEdge.source_path.endswith(f"/{path}"),
+                        RepositoryDependencyEdge.target_path.endswith(f"/{path}"),
                     )
                 )
-            ).all()
+            edge_query = edge_query.where(or_(*path_filters))
+        edge_query = edge_query.order_by(
+            RepositoryDependencyEdge.source_path,
+            RepositoryDependencyEdge.source_line,
+            RepositoryDependencyEdge.target_path,
         )
+        if edge_limit is not None:
+            edge_query = edge_query.limit(edge_limit)
+        edges = tuple((await self.session.scalars(edge_query)).all())
         return StructureRecord(metadata, tuple((row[0], row[1]) for row in rows), edges)
 
     async def dependencies_of(

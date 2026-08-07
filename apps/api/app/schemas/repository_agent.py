@@ -101,6 +101,7 @@ class RepositoryAgentResponse(BaseModel):
     model: str | None
     limitations: tuple[str, ...] = ()
     correlation_id: str | None = None
+    structure_evidence_used: bool = False
 
     @model_validator(mode="after")
     def validate_response(self) -> "RepositoryAgentResponse":

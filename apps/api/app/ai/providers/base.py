@@ -3,6 +3,7 @@ from typing import Protocol
 
 from app.schemas.grounded_answer import EvidenceQuality, TokenUsage
 from app.schemas.retrieval import RepositoryEvidence
+from app.schemas.structure_evidence import StructureEvidence
 
 
 @dataclass(frozen=True, slots=True)
@@ -15,6 +16,7 @@ class ProviderGroundedAnswerRequest:
     correlation_id: str | None
     maximum_output_tokens: int
     temperature: float
+    structure_evidence: StructureEvidence | None = None
 
 
 @dataclass(frozen=True, slots=True)
