@@ -8,6 +8,8 @@ from pydantic import BaseModel, ConfigDict, ValidationError
 from app.ai.providers.base import (
     ProviderGroundedAnswerRequest,
     ProviderGroundedAnswerResult,
+    ProviderSuggestedFixRequest,
+    ProviderSuggestedFixResult,
 )
 from app.core.exceptions import (
     AIProviderNotConfiguredError,
@@ -34,6 +36,15 @@ class _StructuredClaudeResponse(BaseModel):
     cited_evidence_ids: tuple[str, ...]
     evidence_quality: EvidenceQuality
     insufficient_evidence: bool
+    limitations: tuple[str, ...] = ()
+
+
+class _StructuredSuggestedFixResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    explanation: str
+    probable_fix: str
+    example_code: str | None
+    cited_evidence_ids: tuple[str, ...]
     limitations: tuple[str, ...] = ()
 
 
@@ -100,6 +111,64 @@ class ClaudeProvider:
         if response is None:
             raise AIProviderUnavailableError
         return self._parse_response(response)
+
+    async def generate_suggested_fix(
+        self, request: ProviderSuggestedFixRequest
+    ) -> ProviderSuggestedFixResult:
+        response = await self._request(request)
+        try:
+            structured = _StructuredSuggestedFixResponse.model_validate(
+                json.loads(response.content[0].text)
+            )
+        except (
+            AttributeError,
+            IndexError,
+            TypeError,
+            json.JSONDecodeError,
+            ValidationError,
+        ) as exc:
+            raise AIResponseInvalidError from exc
+        return ProviderSuggestedFixResult(
+            provider_name="claude",
+            model_name=self._model,
+            explanation=structured.explanation,
+            probable_fix=structured.probable_fix,
+            example_code=structured.example_code,
+            cited_evidence_ids=structured.cited_evidence_ids,
+            limitations=structured.limitations,
+        )
+
+    async def _request(self, request: ProviderSuggestedFixRequest) -> Any:
+        response: Any = None
+        for attempt in range(self._retry_count + 1):
+            try:
+                response = await asyncio.wait_for(
+                    self._client.messages.create(
+                        model=self._model,
+                        max_tokens=request.maximum_output_tokens,
+                        temperature=request.temperature,
+                        system=request.system_instructions,
+                        messages=[{"role": "user", "content": request.user_prompt}],
+                        output_config={
+                            "format": {"type": "json_schema", "schema": request.output_schema}
+                        },
+                        metadata={"user_id": request.correlation_id}
+                        if request.correlation_id
+                        else None,
+                    ),
+                    timeout=self._timeout_seconds,
+                )
+                return response
+            except TimeoutError as exc:
+                if attempt == self._retry_count:
+                    raise AIProviderTimeoutError from exc
+            except Exception as exc:
+                if self._is_timeout(exc):
+                    if attempt == self._retry_count:
+                        raise AIProviderTimeoutError from exc
+                elif not self._is_transient(exc) or attempt == self._retry_count:
+                    raise AIProviderUnavailableError from exc
+        raise AIProviderUnavailableError
 
     def _parse_response(self, response: Any) -> ProviderGroundedAnswerResult:
         try:

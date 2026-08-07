@@ -41,3 +41,8 @@ All notable changes will be documented here. The project intends to follow [Keep
   and a frontend findings page with loading, empty, error, and accessible severity states.
 
 TODO: Define the first release milestone and versioning policy.
+# Unreleased
+
+- Added on-demand, read-only AI suggested fixes for deterministic code findings, with bounded
+  trusted evidence, secret redaction, citation validation, mock/Claude provider support, and an
+  advisory frontend review panel.

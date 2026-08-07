@@ -53,3 +53,27 @@ class CodeFindingsResponse(BaseModel):
     findings: list[CodeFindingRead]
     limitations: list[str]
     severity_counts: dict[FindingSeverity, int]
+
+
+class SuggestedFixCitation(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    path: str
+    start_line: int = Field(ge=1)
+    end_line: int = Field(ge=1)
+    content_hash: str
+    source_url: AnyHttpUrl
+
+
+class SuggestedFixResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    analysis_job_id: UUID
+    finding_id: UUID
+    rule_id: str
+    explanation: str
+    probable_fix: str
+    example_code: str | None
+    citations: list[SuggestedFixCitation]
+    provider: str
+    model: str
+    limitations: list[str]
+    correlation_id: str | None

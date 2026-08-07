@@ -148,3 +148,12 @@ Returns `{items, limit, offset}` for the repository. `limit` is between 1 and 10
 ## Unresolved contract work
 
 Authentication, rate limits, idempotency beyond repository reuse, retention, worker dispatch, and full asynchronous lifecycle semantics remain undecided.
+# AI suggested fixes
+
+`POST /api/v1/analyses/{analysis_id}/findings/{finding_id}/suggested-fix` generates an optional,
+advisory probable fix for an existing deterministic finding. The request has no body: all source
+evidence, paths, lines, hashes, and commit metadata are loaded from trusted persisted analysis data.
+Context is bounded by `DEVGUIDE_AI_MAXIMUM_EVIDENCE_CHARACTERS`, credential-like values are
+redacted, and citations are validated and reconstructed by the API. Repository files are never
+modified. Use mock mode for deterministic offline testing; configured Claude requests may incur
+provider costs. Always review a suggestion before applying it.

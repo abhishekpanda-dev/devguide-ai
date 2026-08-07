@@ -31,7 +31,39 @@ class ProviderGroundedAnswerResult:
     provider_request_id: str | None = None
 
 
+@dataclass(frozen=True, slots=True)
+class ProviderSuggestedFixRequest:
+    evidence_id: str
+    rule_id: str
+    finding_explanation: str
+    deterministic_recommendation: str
+    evidence: RepositoryEvidence
+    system_instructions: str
+    user_prompt: str
+    output_schema: dict[str, object]
+    correlation_id: str | None
+    maximum_output_tokens: int
+    temperature: float
+
+
+@dataclass(frozen=True, slots=True)
+class ProviderSuggestedFixResult:
+    provider_name: str
+    model_name: str
+    explanation: str
+    probable_fix: str
+    example_code: str | None
+    cited_evidence_ids: tuple[str, ...]
+    limitations: tuple[str, ...] = ()
+
+
 class LLMProvider(Protocol):
     async def generate_grounded_answer(
         self, request: ProviderGroundedAnswerRequest
     ) -> ProviderGroundedAnswerResult: ...
+
+
+class SuggestedFixProvider(Protocol):
+    async def generate_suggested_fix(
+        self, request: ProviderSuggestedFixRequest
+    ) -> ProviderSuggestedFixResult: ...

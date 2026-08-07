@@ -123,6 +123,18 @@ CREDENTIAL = re.compile(
     r"(?i)\b(?:api_?key|access_?token|auth_?token|client_?secret|password|secret)\b\s*(?::[^=]{0,100})?=\s*([\"'])([^\"'\r\n]{4,512})\1"
 )
 SAFE = {"changeme", "example", "placeholder", "redacted", "test", "your-key-here"}
+
+
+def redact_suspected_credentials(value: str) -> str:
+    def replace(match: re.Match[str]) -> str:
+        whole = match.group(0)
+        start = match.start(2) - match.start(0)
+        end = match.end(2) - match.start(0)
+        return whole[:start] + "[REDACTED]" + whole[end:]
+
+    return CREDENTIAL.sub(replace, value)
+
+
 LARGE_FILE_EXCLUDED_NAMES = {
     "cargo.lock",
     "composer.lock",

@@ -86,3 +86,78 @@ test('renders safe API error with correlation ID', async () => {
   expect(await screen.findByText('Code findings are not ready.')).toBeInTheDocument()
   expect(screen.getByText(/find-1/)).toBeInTheDocument()
 })
+
+test('generates an advisory fix only after click and renders trusted details', async () => {
+  const user = userEvent.setup()
+  const suggested = {
+    analysis_job_id: 'a1',
+    finding_id: 'f1',
+    rule_id: finding.rule_id,
+    explanation: 'The literal should not remain in source.',
+    probable_fix: 'Read it from the environment.',
+    example_code: 'API_KEY = os.environ["API_KEY"]',
+    citations: [
+      {
+        path: finding.path,
+        start_line: 27,
+        end_line: 27,
+        content_hash: finding.content_hash,
+        source_url: finding.source_url,
+      },
+    ],
+    provider: 'mock',
+    model: 'mock-suggested-fix-v1',
+    limitations: ['Review in context.'],
+    correlation_id: 'fix-1',
+  }
+  const spy = vi
+    .spyOn(globalThis, 'fetch')
+    .mockImplementation((url) =>
+      String(url).endsWith('/suggested-fix') ? jsonResponse(suggested) : jsonResponse(response),
+    )
+  renderRoute(<CodeFindingsPage />, '/analyses/a1/findings', '/analyses/:analysisId/findings')
+  const button = await screen.findByRole('button', { name: 'Generate probable fix' })
+  expect(screen.queryByLabelText('AI suggested fix')).not.toBeInTheDocument()
+  await user.click(button)
+  expect(await screen.findByText(suggested.explanation)).toBeInTheDocument()
+  expect(screen.getByText(suggested.probable_fix)).toBeInTheDocument()
+  expect(screen.getByText(suggested.example_code)).toBeInTheDocument()
+  expect(screen.getByText(/mock-suggested-fix-v1/)).toBeInTheDocument()
+  expect(screen.getByText('Review before applying.')).toBeInTheDocument()
+  expect(spy.mock.calls.filter(([url]) => String(url).endsWith('/suggested-fix'))).toHaveLength(1)
+})
+
+test('shows loading, prevents duplicate clicks, and allows retry after a safe error', async () => {
+  const user = userEvent.setup()
+  let resolveRequest: ((value: Response) => void) | undefined
+  let attempts = 0
+  vi.spyOn(globalThis, 'fetch').mockImplementation((url) => {
+    if (!String(url).endsWith('/suggested-fix')) return jsonResponse(response)
+    attempts += 1
+    if (attempts === 1)
+      return Promise.resolve(
+        jsonResponse(
+          {
+            error: {
+              code: 'ai_provider_timeout',
+              message: 'The AI provider request timed out.',
+              correlation_id: 'fix-timeout',
+            },
+          },
+          504,
+        ),
+      )
+    return new Promise((resolve) => {
+      resolveRequest = resolve
+    })
+  })
+  renderRoute(<CodeFindingsPage />, '/analyses/a1/findings', '/analyses/:analysisId/findings')
+  await user.click(await screen.findByRole('button', { name: 'Generate probable fix' }))
+  expect(await screen.findByText(/fix-timeout/)).toBeInTheDocument()
+  await user.click(screen.getByRole('button', { name: 'Retry' }))
+  const loading = screen.getByRole('button', { name: 'Generating probable fix...' })
+  expect(loading).toBeDisabled()
+  await user.click(loading)
+  expect(attempts).toBe(2)
+  resolveRequest?.(await jsonResponse({}))
+})

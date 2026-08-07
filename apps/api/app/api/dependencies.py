@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, cast
 from uuid import UUID
 
 from fastapi import Depends, Request
@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.ai.agents import RepositoryIntelligenceAgent
 from app.ai.agents.factory import build_llm_provider
-from app.ai.providers import LLMProvider
+from app.ai.providers import LLMProvider, SuggestedFixProvider
 from app.ai.retrieval import SearchRepositorySkill
 from app.core.exceptions import AnalysisNotFoundError, AnalysisNotReadyError
 from app.db.session import get_db_session
@@ -27,6 +27,7 @@ from app.services import (
 from app.services.grounded_answer import GroundedAnswerService
 from app.services.health import HealthService
 from app.services.readiness import DatabaseReadinessService, ReadinessService
+from app.services.suggested_fix import SuggestedFixService
 
 
 def get_health_service(request: Request) -> HealthService:
@@ -181,6 +182,27 @@ AnalysisSummaryServiceDependency = Annotated[
     AnalysisSummaryService, Depends(get_analysis_summary_service)
 ]
 CodeFindingServiceDependency = Annotated[CodeFindingService, Depends(get_code_finding_service)]
+
+
+def get_suggested_fix_service(
+    request: Request,
+    jobs: AnalysisJobRepositoryDependency,
+    repositories: RepositoryRepositoryDependency,
+    findings: CodeFindingRepositoryDependency,
+    parsed: ParsedRepositoryDependency,
+    provider: LLMProviderDependency,
+) -> SuggestedFixService:
+    return SuggestedFixService(
+        jobs,
+        repositories,
+        findings,
+        parsed,
+        cast(SuggestedFixProvider, provider),
+        request.app.state.settings,
+    )
+
+
+SuggestedFixServiceDependency = Annotated[SuggestedFixService, Depends(get_suggested_fix_service)]
 SubmissionServiceDependency = Annotated[
     RepositorySubmissionService, Depends(get_submission_service)
 ]

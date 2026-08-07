@@ -13,6 +13,7 @@ from app.api.dependencies import (
     RepositoryIntelligenceAgentDependency,
     RepositoryServiceDependency,
     SubmissionServiceDependency,
+    SuggestedFixServiceDependency,
 )
 from app.core.exceptions import AppError, RepositoryQuestionFailedError
 from app.core.middleware import correlation_id_context
@@ -27,6 +28,7 @@ from app.schemas import (
     RepositoryRead,
     RepositorySubmissionRequest,
     RepositorySubmissionResponse,
+    SuggestedFixResponse,
 )
 from app.schemas.health import HealthResponse
 
@@ -127,6 +129,16 @@ async def list_code_findings(
     return await service.list_required(
         analysis_id, severity=severity, category=category, path_prefix=path_prefix, limit=limit
     )
+
+
+@router.post(
+    "/analyses/{analysis_id}/findings/{finding_id}/suggested-fix",
+    response_model=SuggestedFixResponse,
+)
+async def generate_suggested_fix(
+    analysis_id: UUID, finding_id: UUID, service: SuggestedFixServiceDependency
+) -> SuggestedFixResponse:
+    return await service.generate(analysis_id, finding_id, correlation_id_context.get())
 
 
 @router.get(
