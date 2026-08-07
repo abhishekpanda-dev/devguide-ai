@@ -2,17 +2,17 @@
 
 > Understand, improve, and ship unfamiliar codebases with confidence.
 
-DevGuide AI is a planned AI-powered repository intelligence platform. A developer will submit a public GitHub repository and receive an overview, an architecture summary, a health report, explanations of important modules, and evidence-backed repository chat.
+DevGuide AI is an evidence-first repository intelligence platform. The current implementation supports public repository submission, bounded ingestion and parsing foundations, deterministic evidence retrieval, single-question grounded answers, and a React frontend for the implemented public API. Broader reports remain planned.
 
 ## Project status
 
-Repository bootstrap only. Product functionality has not been implemented.
+An early MVP foundation is implemented. It is not yet a complete working-application checkpoint: backend dependencies and a worker are required, and later analysis stages and reports remain unavailable.
 
 ## Planned workspace
 
 - `apps/api` — API boundary (technology TODO)
 - `apps/worker` — background analysis boundary (technology TODO)
-- `apps/web` — user interface boundary (technology TODO)
+- `apps/web` — React, TypeScript, and Vite frontend MVP
 - `agents` — custom agent definitions (TODO)
 - `skills` — custom skill definitions (TODO)
 - `docs` — decisions, diagrams, and demo material
@@ -22,7 +22,7 @@ See [PRD.md](PRD.md), [architecture.md](architecture.md), and [CONTRIBUTING.md](
 
 ## Local development
 
-There is no runnable application yet. The environment, container, and automation files are placeholders and must not be treated as a working development stack.
+See [apps/api/README.md](apps/api/README.md) for backend setup and [apps/web/README.md](apps/web/README.md) for frontend setup. A live end-to-end flow requires the API, PostgreSQL, Redis, and worker.
 
 ## License
 
