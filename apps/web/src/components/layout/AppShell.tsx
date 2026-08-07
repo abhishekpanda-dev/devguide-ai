@@ -17,10 +17,12 @@ export function AppShell() {
             {repositoryId && <NavLink to={`/repositories/${repositoryId}`}>Repository</NavLink>}
             {analysisId && <NavLink to={`/analyses/${analysisId}/ask`}>Ask DevGuide</NavLink>}
             {analysisId && <NavLink to={`/analyses/${analysisId}/findings`}>Findings</NavLink>}
+            {analysisId && <NavLink to={`/analyses/${analysisId}/structure`}>Structure</NavLink>}
+            {analysisId && <NavLink to={`/analyses/${analysisId}/quality`}>Quality</NavLink>}
           </nav>
         </div>
       </header>
-      <main id="main-content" className="page">
+      <main id="main-content" className={repositoryId ? 'page dashboardPage' : 'page'}>
         <Outlet />
       </main>
     </>

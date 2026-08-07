@@ -1,6 +1,18 @@
 # DevGuide AI web
 
-React frontend MVP for the existing DevGuide AI API. It displays only data returned by documented public endpoints; architecture summaries, health scores, language statistics, chat history, and streaming are not available.
+React frontend MVP for the existing DevGuide AI API. It displays only data returned by documented
+public endpoints, including repository summaries, findings, structure, quality scores, and grounded
+questions. Chat history, streaming, and dependency-graph visualization are not available.
+
+## Dashboard shell phase 1
+
+The repository overview is a compact dark intelligence workspace with a repository toolbar,
+analysis-summary sidebar, evidence-focused center workspace, and findings/quality/actions panel.
+Every metric comes from the existing repository, summary, findings, structure, and quality APIs.
+Optional panel failures remain local and use the existing safe correlation-ID errors.
+
+Dependency visualization is intentionally reserved for Phase 2. This phase adds no graph library,
+fake metrics, unsupported controls, or client-authored analysis facts.
 
 ## Local development
 
