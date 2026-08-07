@@ -4,7 +4,7 @@ from tempfile import gettempdir
 from typing import Literal
 from urllib.parse import urlsplit
 
-from pydantic import AliasChoices, AnyUrl, Field, PostgresDsn, field_validator
+from pydantic import AliasChoices, AnyUrl, Field, PostgresDsn, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -49,17 +49,24 @@ class Settings(BaseSettings):
     worker_retry_delay_seconds: int = Field(default=5, ge=0, le=300)
     worker_heartbeat_interval_seconds: int = Field(default=15, ge=1, le=300)
     ai_provider_name: Literal["claude", "mock"] = Field(
-        default="claude",
+        default="mock",
         validation_alias=AliasChoices("DEVGUIDE_AI_PROVIDER", "DEVGUIDE_AI_PROVIDER_NAME"),
     )
     claude_model: str = Field(default="claude-sonnet-4-5", min_length=1, max_length=200)
-    anthropic_api_key: str | None = Field(default=None, min_length=1)
+    anthropic_api_key: SecretStr | None = Field(default=None, min_length=1)
     ai_request_timeout_seconds: float = Field(default=30.0, gt=0, le=300)
     ai_maximum_output_tokens: int = Field(default=1024, ge=1, le=8192)
     ai_maximum_evidence_items: int = Field(default=10, ge=1, le=100)
     ai_maximum_evidence_characters: int = Field(default=30_000, ge=1, le=200_000)
     ai_retry_count: int = Field(default=2, ge=0, le=5)
     ai_temperature: float = Field(default=0.0, ge=0, le=1)
+
+    @field_validator("anthropic_api_key", mode="before")
+    @classmethod
+    def normalize_anthropic_api_key(cls, value: object) -> object:
+        if isinstance(value, str) and not value.strip():
+            return None
+        return value
 
     @field_validator("database_url")
     @classmethod

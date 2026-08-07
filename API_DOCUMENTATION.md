@@ -117,6 +117,14 @@ agent failures return `repository_question_failed`.
 history, authentication, streaming, SSE, WebSocket behavior, or semantic embedding retrieval;
 answers use deterministic lexical evidence and validated citations.
 
+The runtime default is `mock`. Local live generation is enabled with
+`DEVGUIDE_AI_PROVIDER=claude` plus `DEVGUIDE_ANTHROPIC_API_KEY`. The model, request timeout,
+maximum output tokens, temperature, and bounded transient retry count use
+`DEVGUIDE_CLAUDE_MODEL`, `DEVGUIDE_AI_REQUEST_TIMEOUT_SECONDS`,
+`DEVGUIDE_AI_MAXIMUM_OUTPUT_TOKENS`, `DEVGUIDE_AI_TEMPERATURE`, and
+`DEVGUIDE_AI_RETRY_COUNT`. A missing key returns `ai_provider_not_configured`; provider details
+and keys are never included in the public error envelope.
+
 ## `GET /api/v1/repositories/{repository_id}`
 
 Returns a repository record or `repository_not_found` with `404`.

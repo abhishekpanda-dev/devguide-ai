@@ -92,7 +92,10 @@ class ClaudeProvider:
                 if attempt == self._retry_count:
                     raise AIProviderTimeoutError from exc
             except Exception as exc:
-                if not self._is_transient(exc) or attempt == self._retry_count:
+                if self._is_timeout(exc):
+                    if attempt == self._retry_count:
+                        raise AIProviderTimeoutError from exc
+                elif not self._is_transient(exc) or attempt == self._retry_count:
                     raise AIProviderUnavailableError from exc
         if response is None:
             raise AIProviderUnavailableError
@@ -130,6 +133,17 @@ class ClaudeProvider:
     @staticmethod
     def _is_transient(exc: Exception) -> bool:
         status_code = getattr(exc, "status_code", None)
-        return status_code in {408, 409, 429} or (
-            isinstance(status_code, int) and 500 <= status_code < 600
+        return (
+            exc.__class__.__name__
+            in {
+                "APIConnectionError",
+                "InternalServerError",
+                "RateLimitError",
+            }
+            or status_code in {408, 409, 429}
+            or (isinstance(status_code, int) and 500 <= status_code < 600)
         )
+
+    @staticmethod
+    def _is_timeout(exc: Exception) -> bool:
+        return isinstance(exc, TimeoutError) or exc.__class__.__name__ == "APITimeoutError"
