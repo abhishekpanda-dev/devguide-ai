@@ -5,13 +5,10 @@ from fastapi import Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.ai.agents import RepositoryIntelligenceAgent
-from app.ai.providers import ClaudeProvider, LLMProvider, MockLLMProvider
+from app.ai.agents.factory import build_llm_provider
+from app.ai.providers import LLMProvider
 from app.ai.retrieval import SearchRepositorySkill
-from app.core.exceptions import (
-    AIProviderNotConfiguredError,
-    AnalysisNotFoundError,
-    AnalysisNotReadyError,
-)
+from app.core.exceptions import AnalysisNotFoundError, AnalysisNotReadyError
 from app.db.session import get_db_session
 from app.models import AnalysisJob, AnalysisJobStatus
 from app.repositories import AnalysisJobRepository, ParsedRepository, RepositoryRepository
@@ -63,17 +60,7 @@ ParsedRepositoryDependency = Annotated[ParsedRepository, Depends(get_parsed_repo
 
 
 def get_llm_provider(request: Request) -> LLMProvider:
-    settings = request.app.state.settings
-    if settings.ai_provider_name == "mock":
-        if settings.environment not in {"local", "test"}:
-            raise AIProviderNotConfiguredError
-        return MockLLMProvider()
-    return ClaudeProvider(
-        api_key=settings.anthropic_api_key,
-        model=settings.claude_model,
-        timeout_seconds=settings.ai_request_timeout_seconds,
-        retry_count=settings.ai_retry_count,
-    )
+    return build_llm_provider(request.app.state.settings)
 
 
 LLMProviderDependency = Annotated[LLMProvider, Depends(get_llm_provider)]

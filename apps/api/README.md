@@ -61,11 +61,31 @@ and preserve the request correlation ID.
 The API accepts questions only for existing running or completed analyses that already have
 persisted chunks. Insufficient evidence returns `200` without calling the provider. Provider,
 search, grounded-answer, and agent dependencies are constructed outside the handler and can be
-overridden in tests. Set `DEVGUIDE_AI_PROVIDER=mock` in local/test environments or `claude` with a
-configured Anthropic key. Automated tests use the mock provider and make no network calls.
+overridden in tests. The deterministic offline mock is the local/test default. Automated tests use
+the mock provider and make no network calls.
 
 This endpoint has no chat history, authentication, streaming, SSE, WebSockets, embeddings, or
 frontend integration.
+
+### Local Claude answers
+
+To opt into live Claude answers locally, set these variables in the repository `.env` and restart
+the API:
+
+```dotenv
+DEVGUIDE_AI_PROVIDER=claude
+DEVGUIDE_ANTHROPIC_API_KEY=your-local-secret
+DEVGUIDE_CLAUDE_MODEL=claude-sonnet-4-5
+DEVGUIDE_AI_REQUEST_TIMEOUT_SECONDS=30
+DEVGUIDE_AI_MAXIMUM_OUTPUT_TOKENS=1024
+DEVGUIDE_AI_TEMPERATURE=0
+DEVGUIDE_AI_RETRY_COUNT=2
+```
+
+Do not commit the key. A missing or blank key returns `ai_provider_not_configured`. Provider
+timeouts and failures are translated to safe application errors, and raw Anthropic error details
+are not returned. Repository excerpts remain bounded untrusted prompt data; response citations
+are reconstructed from retrieved database evidence rather than accepted from Claude.
 
 ## Requirements
 

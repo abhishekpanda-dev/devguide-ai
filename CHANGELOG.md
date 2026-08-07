@@ -32,5 +32,9 @@ All notable changes will be documented here. The project intends to follow [Keep
 - React and TypeScript frontend MVP with repository submission, polled analysis progress,
   repository metadata, bounded evidence-backed questions, accessible responsive styling, typed API
   errors, and mocked interaction tests.
+- Environment-selectable local Claude question answering with redacted key configuration,
+  bounded generation settings, centralized provider selection, safe timeout/failure translation,
+  trusted-evidence citation reconstruction, and fully offline provider-selection tests. The mock
+  provider remains the default.
 
 TODO: Define the first release milestone and versioning policy.

@@ -128,6 +128,17 @@ async def test_timeout_is_bounded_and_translated() -> None:
     assert client.messages.calls == 2
 
 
+async def test_anthropic_sdk_timeout_is_retried_and_translated() -> None:
+    class APITimeoutError(Exception):
+        pass
+
+    client = FakeClient([APITimeoutError("raw sdk timeout"), APITimeoutError("raw sdk timeout")])
+    with pytest.raises(AIProviderTimeoutError) as caught:
+        await provider(client, retries=1).generate_grounded_answer(request())
+    assert len(client.fake_messages.calls) == 2
+    assert "raw sdk timeout" not in caught.value.message
+
+
 async def test_malformed_response_is_stable_error() -> None:
     client = FakeClient([response("not-json")])
     with pytest.raises(AIResponseInvalidError) as caught:

@@ -12,6 +12,7 @@ from app.api.dependencies import (
     get_search_repository_skill,
     require_question_ready_analysis,
 )
+from app.core.config import Settings
 from app.core.exceptions import (
     AnalysisNotFoundError,
     AnalysisNotReadyError,
@@ -215,6 +216,20 @@ async def test_agent_failure_is_translated_without_raw_details(
     payload = response.json()
     assert payload["error"]["code"] == "repository_question_failed"
     assert "search" not in payload["error"]["message"].lower()
+
+
+async def test_claude_without_api_key_returns_provider_not_configured(
+    client: AsyncClient, test_app: FastAPI
+) -> None:
+    test_app.state.settings = Settings(environment="local", ai_provider_name="claude")
+    test_app.dependency_overrides[require_question_ready_analysis] = ready_analysis
+
+    response = await client.post(
+        f"/api/v1/analyses/{uuid4()}/questions", json={"question": "question"}
+    )
+
+    assert response.status_code == 503
+    assert response.json()["error"]["code"] == "ai_provider_not_configured"
 
 
 def test_public_response_schema_has_no_internal_fields() -> None:
