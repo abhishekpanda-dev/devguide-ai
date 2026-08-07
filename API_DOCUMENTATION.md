@@ -171,3 +171,15 @@ trusted immutable GitHub evidence links. Optional `language`, repository-relativ
 `relationship_type` (`imports`, `requires`, or `reexports`), and bounded `limit` filters are
 supported. Client input cannot create edges or source metadata. Zero-edge completed analyses return
 an empty edge list rather than a not-ready error.
+# Architecture-aware questions
+
+`POST /api/v1/analyses/{analysis_id}/questions` remains the single question endpoint. Questions about
+architecture, entry points, modules, dependencies, usage, data flow, service layers, connectivity, or
+coupling additionally use bounded persisted structure evidence. The response adds the backward-compatible
+`structure_evidence_used` boolean.
+
+Dependency relationships are static source relationships and do not prove runtime behavior. Entry points
+are probable heuristic candidates. Structure summaries are returned to the answer model as trusted facts
+but do not acquire fabricated source citations; normal citations continue to be accepted only from
+validated persisted chunks. Mock mode is deterministic and offline, while configured Claude mode consumes
+the same bounded code and structure envelope.

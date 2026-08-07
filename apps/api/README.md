@@ -184,3 +184,11 @@ Python uses AST imports. JavaScript/TypeScript support literal ES imports, reexp
 Resolution is bounded to known persisted files and `DEVGUIDE_MAXIMUM_DEPENDENCY_EDGES_PER_ANALYSIS`.
 No repository code, build tool, or package manager is executed. These edges are deterministic static
 evidence and do not prove runtime behavior.
+# Structure-aware grounding
+
+Ask DevGuide routes architecture and dependency questions through bounded persisted structure evidence in
+addition to lexical chunks. Limits are configured with
+`DEVGUIDE_STRUCTURE_EVIDENCE_FILE_LIMIT`, `DEVGUIDE_STRUCTURE_EVIDENCE_EDGE_LIMIT`, and
+`DEVGUIDE_STRUCTURE_EVIDENCE_DIRECTORY_LIMIT`. Static edges are not runtime proof, probable entry points
+are heuristic, and unresolved relationships are reported as limitations. Mock mode makes no network calls;
+Claude mode uses this evidence only when configured through the existing provider interface.

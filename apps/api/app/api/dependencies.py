@@ -29,6 +29,7 @@ from app.services.grounded_answer import GroundedAnswerService
 from app.services.health import HealthService
 from app.services.readiness import DatabaseReadinessService, ReadinessService
 from app.services.structure import RepositoryStructureService
+from app.services.structure_evidence import StructureEvidenceService
 from app.services.suggested_fix import SuggestedFixService
 
 
@@ -112,10 +113,22 @@ SearchRepositorySkillDependency = Annotated[
 
 
 def get_repository_intelligence_agent(
+    request: Request,
     search_skill: SearchRepositorySkillDependency,
     answer_service: GroundedAnswerServiceDependency,
+    structures: StructureRepositoryDependency,
 ) -> RepositoryIntelligenceAgent:
-    return RepositoryIntelligenceAgent(search_skill, answer_service)
+    settings = request.app.state.settings
+    return RepositoryIntelligenceAgent(
+        search_skill,
+        answer_service,
+        StructureEvidenceService(
+            structures,
+            file_limit=settings.structure_evidence_file_limit,
+            edge_limit=settings.structure_evidence_edge_limit,
+            directory_limit=settings.structure_evidence_directory_limit,
+        ),
+    )
 
 
 RepositoryIntelligenceAgentDependency = Annotated[

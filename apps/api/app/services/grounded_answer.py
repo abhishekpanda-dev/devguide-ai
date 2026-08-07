@@ -9,6 +9,7 @@ from app.schemas.grounded_answer import (
     GroundedCitation,
 )
 from app.schemas.retrieval import RepositoryEvidence, SearchRepositoryResult
+from app.schemas.structure_evidence import StructureEvidence
 
 
 class GroundedAnswerService:
@@ -23,6 +24,7 @@ class GroundedAnswerService:
         search_result: SearchRepositoryResult,
         correlation_id: str | None = None,
         maximum_citations: int = 10,
+        structure_evidence: StructureEvidence | None = None,
     ) -> GroundedAnswer:
         request = GroundedAnswerRequest(
             analysis_job_id=search_result.analysis_job_id,
@@ -45,8 +47,11 @@ class GroundedAnswerService:
         provider_request = ProviderGroundedAnswerRequest(
             question=request.question,
             evidence=evidence,
+            structure_evidence=structure_evidence,
             system_instructions=SYSTEM_INSTRUCTIONS,
-            user_prompt=build_grounded_answer_prompt(request.question, evidence),
+            user_prompt=build_grounded_answer_prompt(
+                request.question, evidence, structure_evidence
+            ),
             output_schema=self._output_schema(),
             correlation_id=correlation_id,
             maximum_output_tokens=self._settings.ai_maximum_output_tokens,
