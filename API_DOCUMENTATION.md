@@ -2,7 +2,11 @@
 
 ## Status
 
-The FastAPI, persistence, repository submission, and minimal asynchronous ingestion worker are implemented under `apps/api`. Submission commits database records, then enqueues the analysis ID through a typed ARQ queue adapter. It never clones during the API request. Reports, chat, parsing, indexing, and AI functionality remain unimplemented.
+The FastAPI, persistence, repository submission, minimal asynchronous ingestion worker, parser
+persistence, and internal deterministic Search Repository foundation are implemented under
+`apps/api`. Submission commits database records, then enqueues the analysis ID through a typed
+ARQ queue adapter. It never clones during the API request. Reports, chat, semantic indexing, and
+AI functionality remain unimplemented.
 
 Secure shallow-clone primitives now exist as an internal service for future worker use. They are not exposed as a public endpoint, and repository submission still does not trigger ingestion. Temporary clones are bounded, repository code is never executed, and workspaces are deleted after processing.
 
@@ -43,6 +47,20 @@ The ARQ worker atomically claims queued jobs and orchestrates `repository_ingest
 The internal `RepositoryParser` converts an existing workspace into typed file records, deterministic line chunks, and summary statistics. Language detection is extension-based for Python, JavaScript, TypeScript, Java, HTML, CSS, JSON, YAML, Markdown, and TOML. Binary, unsupported, oversized, media, archive, executable, symbolic-link, and ignored-directory content is skipped.
 
 The parser has no public endpoint. Its output is transactionally stored in `repository_files` and `code_chunks`, preserving repository ID, analysis ID, commit SHA, relative path, hashes, parser version, and one-based inclusive ranges. Replacement for the same analysis is idempotent. It does not perform AST extraction, framework detection, AI inference, embeddings, network access, or repository-code execution.
+
+## Internal Search Repository skill
+
+There is no public search or chat endpoint. Internal callers use a typed request containing
+`analysis_job_id`, `query`, optional `languages`, optional repository-relative `path_prefix`,
+`limit`, and `minimum_score`. Results contain persisted evidence provenance, deterministic scores,
+matched channels, counts, coverage, and limitations.
+
+Analysis, language, and prefix constraints are applied before candidate return. Ranking uses
+bounded constants for exact/partial paths, exact phrases, token overlap, simple symbol-like
+matches, language, and prefix signals. Ordering and identical/overlap removal are deterministic.
+Citation validation fails closed on invalid paths, bounds, hashes, or commit provenance. No
+embeddings, pgvector, Claude, network access, learned reranking, or final answer generation are
+involved.
 
 ## `GET /api/v1/repositories/{repository_id}`
 

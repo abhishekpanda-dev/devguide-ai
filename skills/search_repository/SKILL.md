@@ -7,7 +7,15 @@ description: Retrieve and rank revision-bound repository evidence for natural-la
 
 ## Implementation status
 
-Planned custom-skill specification only. No retrieval index, database query, embedding integration, or runtime tool is implemented.
+The internal runtime foundation is implemented in `apps/api/app/ai/retrieval`. It performs
+analysis-scoped deterministic lexical retrieval over persisted parser chunks using exact and
+partial paths, phrases, token overlap, simple symbol-like matching, language filters, and path
+prefixes. Returned evidence has fail-closed citation validation and below-threshold searches
+report insufficient evidence.
+
+Semantic embeddings, pgvector, dependency retrieval, Claude, learned reranking, and final answer
+generation are not implemented. Later semantic and dependency sections remain design requirements,
+not claims of current runtime behavior.
 
 ## 1. Name
 

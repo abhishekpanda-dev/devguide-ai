@@ -1,8 +1,24 @@
 # DevGuide AI API
 
-This directory contains the FastAPI foundation and a minimal ARQ analysis worker. Repository submission commits its records and dispatches the analysis ID to Redis. The worker safely claims queued work and runs only the `repository_ingestion` stage.
+This directory contains the FastAPI foundation, a minimal ARQ analysis worker, parser
+persistence, and the internal runtime Search Repository skill foundation. Repository submission
+commits its records and dispatches the analysis ID to Redis. The worker safely claims queued work
+and persists analysis-scoped parser output.
 
 The internal ingestion service now supplies secure cloning primitives for an existing repository and analysis job. It is not exposed through a public endpoint and no background worker invokes it yet.
+
+## Internal Search Repository skill
+
+`SearchRepositorySkill.search` accepts a typed analysis ID, natural-language query, optional
+language filters and repository-relative path prefix, result limit, and minimum score. It applies
+scope and filters in the repository layer, then deterministically ranks exact/partial paths,
+phrases, token overlap, simple symbol-like declarations and configuration keys, and filter
+matches. Identical and overlapping chunks are removed.
+
+Every citation is revalidated for repository-relative POSIX path, one-based inclusive bounds,
+chunk hash, and commit SHA. Invalid evidence fails closed. There is no public search or chat
+endpoint. Semantic embeddings, pgvector, Claude, and final answer generation are not implemented;
+search requires no network or AI provider.
 
 ## Requirements
 
