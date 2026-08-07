@@ -79,6 +79,21 @@ cannot be supplied or altered by the model. Automated tests use `MockLLMProvider
 Claude client; no real API request is made. Embeddings, pgvector, and agent orchestration remain
 unimplemented.
 
+## Internal Repository Intelligence Agent
+
+No agent endpoint is exposed. The internal typed agent accepts an analysis ID, question, optional
+language and path-prefix filters, retrieval score/limit controls, citation limit, and correlation
+ID. It invokes deterministic lexical Search Repository retrieval, independently verifies analysis
+scope and citation metadata, removes duplicate evidence, orders it deterministically, and invokes
+Grounded Answer through dependency injection.
+
+An empty or below-threshold retrieval returns a typed insufficient-evidence response without any
+provider call. Successful results contain only validated evidence-derived citations plus safe
+provider/model metadata and limitations. Search and answer failures are translated into stable
+agent errors without exposing database or provider details. Runtime tests use `MockLLMProvider`
+and typed fakes; no external service is required. Public chat, embeddings, streaming,
+authentication, and full product orchestration remain unimplemented.
+
 ## `GET /api/v1/repositories/{repository_id}`
 
 Returns a repository record or `repository_not_found` with `404`.

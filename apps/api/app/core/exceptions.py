@@ -206,6 +206,42 @@ class GroundedAnswerValidationError(AppError):
         )
 
 
+class RepositoryAgentInvalidRequestError(AppError):
+    def __init__(self) -> None:
+        super().__init__(
+            code="repository_agent_invalid_request",
+            message="The repository agent request is invalid.",
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        )
+
+
+class RepositoryAgentSearchFailedError(AppError):
+    def __init__(self) -> None:
+        super().__init__(
+            code="repository_agent_search_failed",
+            message="Repository evidence search could not be completed.",
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
+
+
+class RepositoryAgentEvidenceInvalidError(AppError):
+    def __init__(self) -> None:
+        super().__init__(
+            code="repository_agent_evidence_invalid",
+            message="Repository evidence failed agent validation.",
+            status_code=status.HTTP_502_BAD_GATEWAY,
+        )
+
+
+class RepositoryAgentAnswerFailedError(AppError):
+    def __init__(self) -> None:
+        super().__init__(
+            code="repository_agent_answer_failed",
+            message="The grounded repository answer could not be completed.",
+            status_code=status.HTTP_502_BAD_GATEWAY,
+        )
+
+
 def _response(*, code: str, message: str, status_code: int) -> JSONResponse:
     return JSONResponse(
         status_code=status_code,
