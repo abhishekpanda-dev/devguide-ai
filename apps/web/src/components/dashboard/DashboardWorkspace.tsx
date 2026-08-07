@@ -7,6 +7,7 @@ import type {
   StructureResponse,
 } from '../../api/types'
 import { ApiErrorMessage } from '../feedback/ApiErrorMessage'
+import { DependencyVisualization } from './DependencyVisualization'
 
 export function DashboardWorkspace({
   repository,
@@ -112,18 +113,12 @@ export function DashboardWorkspace({
           )}
         </section>
       </div>
-      <section className="graphReserve" aria-label="Dependency visualization placeholder">
-        <div className="graphGrid" aria-hidden="true" />
-        <div>
-          <span className="phaseTag">Phase 2</span>
-          <h2>Dependency visualization coming next</h2>
-          <p>
-            This workspace is reserved for a bounded graph built from the{' '}
-            {structure?.summary.edge_count ?? 0} currently persisted static dependency edges.
-          </p>
-          <Link to={`/analyses/${analysis.id}/structure`}>Review dependency table</Link>
-        </div>
-      </section>
+      <DependencyVisualization
+        analysis={analysis}
+        structure={structure}
+        findings={findings}
+        error={structureError}
+      />
       <section className="dashboardCard">
         <div className="cardHeading">
           <h2>Primary findings</h2>

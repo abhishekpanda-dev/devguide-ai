@@ -134,7 +134,7 @@ test('renders the dark shell with real metrics, workspace data, links, and toolb
   expect(within(languagesSection).queryByText(/^ready$/i)).not.toBeInTheDocument()
   expect(within(languagesSection).queryByText(/100% complete/i)).not.toBeInTheDocument()
   expect(screen.getByText('Python main guard. · 100%')).toBeInTheDocument()
-  expect(screen.getByText('Dependency visualization coming next')).toBeInTheDocument()
+  expect(screen.getByRole('heading', { name: 'Dependency visualization' })).toBeInTheDocument()
   expect(screen.getByRole('link', { name: 'Ask' })).toHaveAttribute('href', '/analyses/a1/ask')
   expect(screen.getAllByRole('link', { name: 'Quality' })[0]).toHaveAttribute(
     'href',

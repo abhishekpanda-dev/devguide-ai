@@ -907,6 +907,493 @@ select {
   background-size: 28px 28px;
   mask-image: radial-gradient(circle, black, transparent 75%);
 }
+.dependencyVisualization {
+  margin-bottom: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+.dependencyHeader,
+.dependencyStage,
+.nodeDetails .cardHeading {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  align-items: flex-start;
+}
+.dependencyHeader h2 {
+  margin: 0;
+  font-size: 1.08rem;
+}
+.dependencyModes {
+  display: flex;
+  gap: 2px;
+}
+.dependencyModes button {
+  min-height: 32px;
+  padding: 0.35rem 0.75rem;
+  color: var(--text-muted);
+  border-color: var(--border);
+  background: var(--surface-primary);
+  font-size: 0.78rem;
+  text-transform: capitalize;
+}
+.dependencyModes button[aria-selected='true'] {
+  color: var(--text);
+  border-color: var(--accent);
+  background: var(--surface-muted);
+}
+.dependencyFilters {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(110px, 1fr));
+  gap: var(--space-2);
+  margin: var(--space-4) 0 var(--space-3);
+}
+.dependencyFilters label,
+.dependencySearch > label {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 650;
+}
+.dependencyFilters select,
+.dependencyFilters input,
+.dependencySearch input {
+  min-width: 0;
+  min-height: 34px;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--border-strong);
+  color: var(--text);
+  background: var(--surface-primary);
+  font-size: 0.78rem;
+}
+.dependencyFilters .filterCheck {
+  display: flex;
+  align-items: center;
+  align-self: end;
+  min-height: 34px;
+  color: var(--text);
+}
+.filterCheck input {
+  width: auto;
+  min-height: auto;
+}
+.dependencySearch {
+  position: relative;
+  max-width: 520px;
+  margin-bottom: var(--space-3);
+}
+.dependencySearch ul {
+  position: absolute;
+  z-index: 15;
+  width: 100%;
+  max-height: 230px;
+  margin: 2px 0 0;
+  padding: var(--space-1);
+  overflow-y: auto;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  list-style: none;
+}
+.dependencySearch li button {
+  width: 100%;
+  min-height: 34px;
+  justify-content: flex-start;
+  padding: 0.4rem 0.5rem;
+  overflow: hidden;
+  color: var(--text);
+  border: 0;
+  background: transparent;
+  text-align: left;
+}
+.dependencySearch li button:hover {
+  background: var(--surface-muted);
+}
+.dependencySearch code {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.graphNotice {
+  padding: var(--space-2) var(--space-3);
+  color: var(--text-muted);
+  border: 1px solid #563918;
+  background: var(--surface-warning);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+.dependencyStage {
+  align-items: stretch;
+}
+.dependencyPrimary {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.dependencyGraphCanvas {
+  width: 100%;
+  height: 460px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: #090d13;
+}
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.dependencyBundle {
+  position: relative;
+  width: 100%;
+  min-height: 540px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background:
+    radial-gradient(circle at center, rgb(13 17 23 / 15%) 0 27%, transparent 28%), #090d13;
+  touch-action: none;
+}
+.dependencyBundle svg {
+  display: block;
+  width: 100%;
+  min-height: 540px;
+  cursor: grab;
+}
+.dependencyBundle svg:active {
+  cursor: grabbing;
+}
+.bundleControls {
+  position: absolute;
+  z-index: 3;
+  top: var(--space-2);
+  left: var(--space-2);
+  display: flex;
+  overflow: hidden;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+.bundleControls button {
+  min-width: 32px;
+  min-height: 32px;
+  padding: 0.3rem 0.55rem;
+  color: var(--text-muted);
+  border: 0;
+  border-right: 1px solid var(--border);
+  border-radius: 0;
+  background: var(--surface-primary);
+  font-size: 0.72rem;
+}
+.bundleControls button:hover {
+  color: var(--text);
+  background: var(--surface-muted);
+}
+.bundleSectors {
+  opacity: 0.6;
+}
+.bundleEdges path {
+  fill: none;
+  stroke: #49647f;
+  stroke-width: 0.75;
+  stroke-opacity: 0.45;
+  transition:
+    opacity 120ms ease,
+    stroke 120ms ease,
+    stroke-width 120ms ease;
+}
+.bundleEdges path[data-relationship='requires'] {
+  stroke: #18a96a;
+  stroke-dasharray: 3 2;
+}
+.bundleEdges path[data-relationship='reexports'] {
+  stroke: #9c78da;
+  stroke-dasharray: 1.5 2;
+}
+.bundleEdges .bundleOutgoing {
+  stroke: var(--accent);
+  stroke-width: 2.2;
+  stroke-opacity: 1;
+}
+.bundleEdges .bundleIncoming {
+  stroke: var(--warning);
+  stroke-width: 2.2;
+  stroke-opacity: 1;
+}
+#bundle-arrow-out path {
+  fill: var(--accent);
+}
+#bundle-arrow-in path {
+  fill: var(--warning);
+}
+.bundleFiles > g {
+  cursor: pointer;
+  outline: none;
+  transition: opacity 120ms ease;
+}
+.bundleFiles circle {
+  stroke: #090d13;
+  stroke-width: 1.4;
+}
+.bundleFiles text {
+  font: 600 7.5px/1 var(--font-sans);
+  paint-order: stroke;
+  stroke: #090d13;
+  stroke-width: 2.6px;
+  stroke-linejoin: round;
+}
+.bundleFileSelected circle,
+.bundleFiles > g:focus circle {
+  stroke: #fff;
+  stroke-width: 3;
+}
+.bundleFileOutgoing circle {
+  stroke: var(--accent);
+  stroke-width: 2.4;
+}
+.bundleFileIncoming circle {
+  stroke: var(--warning);
+  stroke-width: 2.4;
+}
+.bundleEntryMarker {
+  stroke-width: 2;
+}
+.bundleFaded {
+  opacity: 0.1;
+}
+.dependencyNodeButton small {
+  width: 100%;
+  overflow: hidden;
+  color: var(--text-subtle);
+  font-size: 0.62rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dependencyGraphCanvas .react-flow__controls {
+  overflow: hidden;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  box-shadow: none;
+}
+.dependencyGraphCanvas .react-flow__controls-button {
+  color: var(--text);
+  border-bottom-color: var(--border);
+  background: var(--surface-primary);
+  fill: var(--text);
+}
+.dependencyGraphCanvas .react-flow__controls-button:hover {
+  background: var(--surface-muted);
+}
+.dependencyGraphCanvas .react-flow__node {
+  overflow: hidden;
+  padding: 0;
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-primary);
+  box-shadow: none;
+}
+.dependencyGraphCanvas .react-flow__node.selected {
+  outline: 2px solid var(--success);
+  outline-offset: 2px;
+}
+.dependencyNodeButton {
+  display: grid;
+  gap: 0.28rem;
+  width: 100%;
+  min-height: 62px;
+  justify-items: start;
+  padding: 0.55rem;
+  overflow: hidden;
+  color: var(--text);
+  border: 0;
+  background: transparent;
+  text-align: left;
+}
+.dependencyNodeButton:hover {
+  color: var(--text);
+  background: var(--surface-muted);
+}
+.dependencyNodeButton span {
+  color: var(--text-muted);
+  font-size: 0.66rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.dependencyNodeButton code {
+  width: 100%;
+  overflow: hidden;
+  font-size: 0.68rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dependencyGraphCanvas .react-flow__edge-text {
+  fill: var(--text-muted);
+  font-size: 8px;
+}
+.dependencyGraphCanvas .react-flow__edge-textbg {
+  fill: var(--surface);
+}
+.dependencyTree ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.dependencyTreeGroup + .dependencyTreeGroup {
+  margin-top: var(--space-2);
+}
+.dependencyTreeGroup summary {
+  padding: 0.5rem 0.6rem;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-primary);
+  cursor: pointer;
+}
+.dependencyTreeGroup summary code {
+  color: var(--text);
+  font-size: 0.74rem;
+}
+.dependencyTreeGroup ul {
+  padding-left: var(--space-3);
+  border-left: 1px solid var(--border);
+}
+.dependencyTree button {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: 40px;
+  justify-content: initial;
+  padding: 0.45rem 0.6rem;
+  color: var(--text);
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
+  text-align: left;
+}
+.dependencyTree button:hover,
+.dependencyTree button[aria-pressed='true'] {
+  background: var(--surface-muted);
+}
+.dependencyTree code {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dependencyTree button > span:last-child {
+  color: var(--text-muted);
+  font-size: 0.74rem;
+  white-space: nowrap;
+}
+.nodeDetails {
+  display: grid;
+  flex: 0 0 250px;
+  gap: var(--space-3);
+  align-content: start;
+  min-width: 0;
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  background: var(--surface-primary);
+}
+.nodeDetails h3 {
+  margin: 0;
+  font-size: 0.9rem;
+}
+.nodeDetails .cardHeading button {
+  min-height: 28px;
+  padding: 0.25rem 0.45rem;
+  color: var(--text-muted);
+  border-color: var(--border);
+  background: transparent;
+  font-size: 0.7rem;
+}
+.nodeDetails > code {
+  overflow-wrap: anywhere;
+}
+.nodeDetails dl {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  margin: 0;
+  background: var(--border);
+}
+.nodeDetails dl div {
+  padding: var(--space-2);
+  background: var(--surface);
+}
+.nodeDetails dt {
+  color: var(--text-muted);
+  font-size: 0.68rem;
+}
+.nodeDetails dd {
+  margin: 0.15rem 0 0;
+  font-weight: 700;
+}
+.nodeDetails p,
+.nodeDetails a {
+  margin: 0;
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+.nodeRelationshipLists {
+  display: grid;
+  gap: var(--space-3);
+  max-height: 270px;
+  overflow-y: auto;
+}
+.nodeRelationshipLists h4 {
+  margin: 0 0 var(--space-1);
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+}
+.nodeRelationshipLists ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.nodeRelationshipLists button {
+  display: grid;
+  gap: 0.1rem;
+  width: 100%;
+  min-height: 36px;
+  justify-content: stretch;
+  padding: 0.35rem;
+  color: var(--text);
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
+  text-align: left;
+}
+.nodeRelationshipLists button:hover {
+  background: var(--surface-muted);
+}
+.nodeRelationshipLists code {
+  overflow: hidden;
+  font-size: 0.68rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nodeRelationshipLists button span {
+  color: var(--text-muted);
+  font-size: 0.64rem;
+}
+.entryPointBadge {
+  width: fit-content;
+  padding: 0.2rem 0.4rem;
+  color: var(--success);
+  border: 1px solid #285a49;
+  background: var(--surface-success);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
 .phaseTag {
   padding: 0.25rem 0.45rem;
   border: 1px solid #443467;
@@ -1123,6 +1610,27 @@ select {
   .workspaceProgress {
     text-align: left;
   }
+  .dependencyFilters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .dependencyStage {
+    display: block;
+  }
+  .nodeDetails {
+    margin-top: var(--space-3);
+  }
+  .dependencyModes {
+    display: none;
+  }
+  .desktopGraphMode {
+    display: none !important;
+  }
+  .desktopBundleMode {
+    display: none !important;
+  }
+  .dependencyTree {
+    display: block !important;
+  }
 }
 @media (max-width: 520px) {
   .dashboardToolbar {
@@ -1142,6 +1650,18 @@ select {
   }
   .mobilePanelControls {
     flex-wrap: wrap;
+  }
+  .dependencyVisualization {
+    padding: var(--space-3);
+  }
+  .dependencyFilters {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .dependencyTree button {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .dependencyTree button > span:last-child {
+    grid-column: 2;
   }
 }
 @media (prefers-reduced-motion: reduce) {
