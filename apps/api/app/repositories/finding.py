@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import cast
 from uuid import UUID
 
 from sqlalchemy import delete, func, select
@@ -25,6 +26,16 @@ class FindingsPage:
 class CodeFindingRepository:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
+
+    async def get_for_analysis(self, analysis_job_id: UUID, finding_id: UUID) -> CodeFinding | None:
+        return cast(
+            CodeFinding | None,
+            await self.session.scalar(
+                select(CodeFinding).where(
+                    CodeFinding.analysis_job_id == analysis_job_id, CodeFinding.id == finding_id
+                )
+            ),
+        )
 
     async def replace(
         self,

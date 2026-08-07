@@ -82,6 +82,25 @@ export interface CodeFindingsResponse {
   limitations: string[]
   severity_counts: Record<FindingSeverity, number>
 }
+export interface SuggestedFix {
+  analysis_job_id: string
+  finding_id: string
+  rule_id: string
+  explanation: string
+  probable_fix: string
+  example_code: string | null
+  citations: Array<{
+    path: string
+    start_line: number
+    end_line: number
+    content_hash: string
+    source_url: string
+  }>
+  provider: string
+  model: string
+  limitations: string[]
+  correlation_id: string | null
+}
 export interface Citation {
   chunk_id: string
   repository_file_id: string

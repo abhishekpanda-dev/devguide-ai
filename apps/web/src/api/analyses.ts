@@ -5,6 +5,7 @@ import type {
   CodeFindingsResponse,
   FindingCategory,
   FindingSeverity,
+  SuggestedFix,
 } from './types'
 export const getAnalysis = (id: string) => request<Analysis>(`/analyses/${id}`)
 export const getAnalysisSummary = (id: string) =>
@@ -18,3 +19,7 @@ export const getCodeFindings = (
   if (filters.category) params.set('category', filters.category)
   return request<CodeFindingsResponse>(`/analyses/${id}/findings?${params}`)
 }
+export const generateSuggestedFix = (analysisId: string, findingId: string) =>
+  request<SuggestedFix>(`/analyses/${analysisId}/findings/${findingId}/suggested-fix`, {
+    method: 'POST',
+  })

@@ -153,6 +153,32 @@ class ParsedRepository:
         )
         return chunk_id is not None
 
+    async def context_for_file(
+        self, analysis_job_id: UUID, repository_file_id: UUID
+    ) -> tuple[RepositoryFile | None, list[CodeChunk]]:
+        file = await self._session.scalar(
+            select(RepositoryFile).where(
+                RepositoryFile.analysis_job_id == analysis_job_id,
+                RepositoryFile.id == repository_file_id,
+            )
+        )
+        if file is None:
+            return None, []
+        chunks = list(
+            (
+                await self._session.scalars(
+                    select(CodeChunk)
+                    .where(
+                        CodeChunk.analysis_job_id == analysis_job_id,
+                        CodeChunk.repository_file_id == repository_file_id,
+                        CodeChunk.commit_sha == file.commit_sha,
+                    )
+                    .order_by(CodeChunk.start_line)
+                )
+            ).all()
+        )
+        return file, chunks
+
     async def search_candidates(
         self,
         analysis_job_id: UUID,

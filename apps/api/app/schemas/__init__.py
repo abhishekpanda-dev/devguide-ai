@@ -8,7 +8,7 @@ from app.schemas.analysis import (
     AnalysisStageRead,
     AnalysisSummary,
 )
-from app.schemas.finding import CodeFindingRead, CodeFindingsResponse
+from app.schemas.finding import CodeFindingRead, CodeFindingsResponse, SuggestedFixResponse
 from app.schemas.grounded_answer import (
     EvidenceQuality,
     GroundedAnswer,
@@ -75,5 +75,6 @@ __all__ = [
     "SearchCoverage",
     "SearchRepositoryRequest",
     "SearchRepositoryResult",
+    "SuggestedFixResponse",
     "TokenUsage",
 ]

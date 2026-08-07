@@ -1,14 +1,30 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router'
-import { getCodeFindings } from '../api/analyses'
-import type { FindingCategory, FindingSeverity } from '../api/types'
+import { generateSuggestedFix, getCodeFindings } from '../api/analyses'
+import type { FindingCategory, FindingSeverity, SuggestedFix } from '../api/types'
 import { ApiErrorMessage } from '../components/feedback/ApiErrorMessage'
 
 export function CodeFindingsPage() {
   const { analysisId = '' } = useParams()
   const [severity, setSeverity] = useState<FindingSeverity | ''>('')
   const [category, setCategory] = useState<FindingCategory | ''>('')
+  const [suggestions, setSuggestions] = useState<Record<string, SuggestedFix>>({})
+  const [suggestionErrors, setSuggestionErrors] = useState<Record<string, unknown>>({})
+  const [loadingFinding, setLoadingFinding] = useState<string | null>(null)
+  const loadSuggestion = async (findingId: string) => {
+    if (loadingFinding === findingId) return
+    setLoadingFinding(findingId)
+    setSuggestionErrors((current) => ({ ...current, [findingId]: undefined }))
+    try {
+      const value = await generateSuggestedFix(analysisId, findingId)
+      setSuggestions((current) => ({ ...current, [findingId]: value }))
+    } catch (error) {
+      setSuggestionErrors((current) => ({ ...current, [findingId]: error }))
+    } finally {
+      setLoadingFinding(null)
+    }
+  }
   const query = useQuery({
     queryKey: ['code-findings', analysisId, severity, category],
     queryFn: () =>
@@ -79,6 +95,7 @@ export function CodeFindingsPage() {
         <div className="findingList">
           {query.data.findings.map((f) => (
             <article className={`panel findingCard finding-${f.severity}`} key={f.id}>
+              <p className="eyebrow">Deterministic finding</p>
               <div className="panelHeader">
                 <div>
                   <span className="findingSeverity">{f.severity}</span>
@@ -109,6 +126,29 @@ export function CodeFindingsPage() {
               >
                 Open on GitHub →
               </a>
+              <button
+                type="button"
+                onClick={() => void loadSuggestion(f.id)}
+                disabled={loadingFinding === f.id}
+              >
+                {loadingFinding === f.id
+                  ? 'Generating probable fix...'
+                  : suggestions[f.id]
+                    ? 'Regenerate probable fix'
+                    : 'Generate probable fix'}
+              </button>
+              {suggestionErrors[f.id] ? (
+                <div>
+                  <ApiErrorMessage
+                    error={suggestionErrors[f.id]}
+                    fallback="AI suggested fix could not be generated."
+                  />
+                  <button type="button" onClick={() => void loadSuggestion(f.id)}>
+                    Retry
+                  </button>
+                </div>
+              ) : null}
+              {suggestions[f.id] ? <SuggestedFixPanel suggestion={suggestions[f.id]} /> : null}
             </article>
           ))}
         </div>
@@ -127,5 +167,49 @@ export function CodeFindingsPage() {
         <Link to={`/analyses/${analysisId}`}>Back to analysis</Link>
       </p>
     </div>
+  )
+}
+
+function SuggestedFixPanel({ suggestion }: { suggestion: SuggestedFix }) {
+  return (
+    <section className="findingRecommendation" aria-label="AI suggested fix">
+      <p className="eyebrow">AI suggested fix</p>
+      <h3>Explanation</h3>
+      <p>{suggestion.explanation}</p>
+      <h3>Probable fix</h3>
+      <p>{suggestion.probable_fix}</p>
+      {suggestion.example_code ? (
+        <>
+          <h3>Example</h3>
+          <pre>
+            <code>{suggestion.example_code}</code>
+          </pre>
+        </>
+      ) : null}
+      <h3>Evidence</h3>
+      <ul>
+        {suggestion.citations.map((citation) => (
+          <li key={`${citation.path}:${citation.start_line}`}>
+            <a href={citation.source_url} target="_blank" rel="noopener noreferrer">
+              {citation.path} lines {citation.start_line}-{citation.end_line}
+            </a>
+          </li>
+        ))}
+      </ul>
+      <p>
+        Provider: {suggestion.provider} / {suggestion.model}
+      </p>
+      {suggestion.limitations.length ? (
+        <>
+          <h3>Limitations</h3>
+          <ul>
+            {suggestion.limitations.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        </>
+      ) : null}
+      <strong>Review before applying.</strong>
+    </section>
   )
 }
