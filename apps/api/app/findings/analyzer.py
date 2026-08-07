@@ -7,6 +7,11 @@ from app.findings.types import FindingCandidate, FindingsAnalysisResult
 from app.models import FindingCategory as C
 from app.models import FindingSeverity as S
 from app.parser import RepositoryParseResult
+from app.parser.classification import (
+    EXCLUDED_FINDINGS_CLASSIFICATIONS,
+    FileClassification,
+    classify_file,
+)
 from app.parser.types import SourceFile
 
 
@@ -27,7 +32,7 @@ RULES = {
         "TODO maintenance marker",
         "A TODO marker identifies work that may need completion or review.",
         "Review and track actionable work, then remove the marker when complete.",
-        1,
+        0.95,
     ),
     "maintainability.fixme": Rule(
         S.WARNING,
@@ -35,7 +40,7 @@ RULES = {
         "FIXME maintenance marker",
         "A FIXME marker identifies known behavior that warrants review.",
         "Review the behavior and replace the marker with a tracked, tested correction.",
-        1,
+        0.95,
     ),
     "maintainability.hack": Rule(
         S.WARNING,
@@ -43,7 +48,7 @@ RULES = {
         "HACK maintenance marker",
         "A HACK marker identifies a potentially fragile workaround.",
         "Document the workaround and replace it with a supported approach when practical.",
-        1,
+        0.95,
     ),
     "maintainability.large-file": Rule(
         S.INFO,
@@ -117,6 +122,38 @@ RULES = {
         "Set a bounded timeout and handle timeout failures.",
         0.9,
     ),
+    "python.mutable-default-argument": Rule(
+        S.WARNING,
+        C.RELIABILITY,
+        "Mutable default argument",
+        "A mutable default value is shared across calls and can retain unexpected state.",
+        "Use None as the default and create the mutable value inside the function.",
+        0.99,
+    ),
+    "python.bare-except": Rule(
+        S.WARNING,
+        C.RELIABILITY,
+        "Bare exception handler",
+        "A bare except handler catches system-exiting exceptions as well as application errors.",
+        "Catch the narrow exception types that the operation can handle.",
+        0.99,
+    ),
+    "python.runtime-assert": Rule(
+        S.INFO,
+        C.RELIABILITY,
+        "Assert used for runtime validation",
+        "Assertions can be disabled and should not enforce required runtime input validation.",
+        "Use an explicit conditional and raise an appropriate exception.",
+        0.95,
+    ),
+    "security.tls-verification-disabled": Rule(
+        S.HIGH,
+        C.SECURITY,
+        "TLS certificate verification disabled",
+        "A recognized HTTP call explicitly disables TLS certificate verification.",
+        "Enable certificate verification and configure a trusted CA bundle when needed.",
+        0.99,
+    ),
 }
 MARKER = re.compile(r"\b(TODO|FIXME|HACK)\b", re.I)
 CREDENTIAL = re.compile(
@@ -135,18 +172,6 @@ def redact_suspected_credentials(value: str) -> str:
     return CREDENTIAL.sub(replace, value)
 
 
-LARGE_FILE_EXCLUDED_NAMES = {
-    "cargo.lock",
-    "composer.lock",
-    "package-lock.json",
-    "pnpm-lock.yaml",
-    "poetry.lock",
-    "yarn.lock",
-}
-LARGE_FILE_EXCLUDED_DIRECTORIES = {"build", "dist", "node_modules", "vendor"}
-LARGE_FILE_GENERATED_SUFFIXES = (".min.css", ".min.js", ".map")
-
-
 class DeterministicFindingsAnalyzer:
     def __init__(self, *, large_file_line_threshold: int, maximum_findings: int) -> None:
         if min(large_file_line_threshold, maximum_findings) < 1:
@@ -160,15 +185,31 @@ class DeterministicFindingsAnalyzer:
         for source in result.files:
             if not self.safe_path(source.metadata.path):
                 raise ValueError("unsafe findings path")
-            found.extend(self.text_rules(source, commit_sha))
-            if source.metadata.language == "python":
+            classification = self.classification(source)
+            if classification in EXCLUDED_FINDINGS_CLASSIFICATIONS:
+                continue
+            if classification in {
+                FileClassification.SOURCE,
+                FileClassification.TEST,
+                FileClassification.CONFIGURATION,
+                FileClassification.DOCUMENTATION,
+                FileClassification.UNKNOWN,
+            }:
+                found.extend(self.text_rules(source, commit_sha, classification))
+            if source.metadata.language == "python" and classification in {
+                FileClassification.SOURCE,
+                FileClassification.TEST,
+            }:
                 try:
-                    found.extend(self.python_rules(source, commit_sha))
+                    found.extend(self.python_rules(source, commit_sha, classification))
                 except (SyntaxError, ValueError):
                     limitations.append(
                         f"{source.metadata.path}: Python syntax could not be inspected."
                     )
-            if source.metadata.line_count >= self.threshold and self.large_file_eligible(source):
+            if (
+                source.metadata.line_count >= self.threshold
+                and classification is FileClassification.SOURCE
+            ):
                 found.append(
                     self.make(
                         "maintainability.large-file",
@@ -176,16 +217,22 @@ class DeterministicFindingsAnalyzer:
                         commit_sha,
                         1,
                         max(1, source.metadata.line_count),
-                        f"File contains {source.metadata.line_count} lines.",
+                        f"Source file contains {source.metadata.line_count} lines.",
                     )
                 )
-        found.sort(key=lambda x: (x.path, x.start_line, x.end_line, x.rule_id))
+        unique = {
+            (x.path, x.rule_id, x.start_line, x.end_line, " ".join(x.evidence_excerpt.split())): x
+            for x in found
+        }
+        found = sorted(unique.values(), key=lambda x: (x.path, x.start_line, x.end_line, x.rule_id))
         if len(found) > self.maximum:
             found = found[: self.maximum]
             limitations.append("The configured maximum findings count was reached.")
         return FindingsAnalysisResult(tuple(found), tuple(sorted(set(limitations))))
 
-    def text_rules(self, source: SourceFile, sha: str) -> list[FindingCandidate]:
+    def text_rules(
+        self, source: SourceFile, sha: str, classification: FileClassification
+    ) -> list[FindingCandidate]:
         out = []
         for number, line in enumerate(source.content.splitlines(), 1):
             line = line[:4096]
@@ -195,9 +242,13 @@ class DeterministicFindingsAnalyzer:
                         f"maintainability.{marker}", source, sha, number, number, self.excerpt(line)
                     )
                 )
-            match = CREDENTIAL.search(line)
+            match = (
+                CREDENTIAL.search(line)
+                if classification in {FileClassification.SOURCE, FileClassification.CONFIGURATION}
+                else None
+            )
             if match and self.suspicious(match.group(2)):
-                redacted = line[: match.start(2)] + "[REDACTED]" + line[match.end(2) :]
+                redacted = redact_suspected_credentials(line)
                 out.append(
                     self.make(
                         "security.hardcoded-credential",
@@ -210,7 +261,9 @@ class DeterministicFindingsAnalyzer:
                 )
         return out
 
-    def python_rules(self, source: SourceFile, sha: str) -> list[FindingCandidate]:
+    def python_rules(
+        self, source: SourceFile, sha: str, classification: FileClassification
+    ) -> list[FindingCandidate]:
         tree = ast.parse(source.content)
         lines = source.content.splitlines()
         out = []
@@ -229,6 +282,8 @@ class DeterministicFindingsAnalyzer:
                     rule = "python.subprocess-shell"
                 elif self.network(name) and not any(k.arg == "timeout" for k in node.keywords):
                     rule = "network.missing-timeout"
+                if self.network(name) and self.false_kw(node, "verify"):
+                    rule = "security.tls-verification-disabled"
                 elif name.endswith(".run") and self.true_kw(node, "debug"):
                     rule = "security.debug-enabled"
             elif isinstance(node, (ast.Assign, ast.AnnAssign)):
@@ -236,14 +291,30 @@ class DeterministicFindingsAnalyzer:
                 if (
                     isinstance(node.value, ast.Constant)
                     and node.value.value is True
-                    and any(self.name(t).lower().endswith("debug") for t in targets)
+                    and any(self.debug_target(t) for t in targets)
                 ):
                     rule = "security.debug-enabled"
             elif isinstance(node, ast.ExceptHandler):
-                if self.broad(node.type):
+                if node.type is None:
+                    out.append(self.node("python.bare-except", node, source, sha, lines))
+                elif self.broad(node.type):
                     out.append(self.node("python.broad-exception", node, source, sha, lines))
                 if len(node.body) == 1 and isinstance(node.body[0], ast.Pass):
                     rule = "python.empty-exception"
+            elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                defaults = (
+                    *node.args.defaults,
+                    *(x for x in node.args.kw_defaults if x is not None),
+                )
+                mutable = next(
+                    (x for x in defaults if isinstance(x, (ast.List, ast.Dict, ast.Set))), None
+                )
+                if mutable is not None:
+                    out.append(
+                        self.node("python.mutable-default-argument", mutable, source, sha, lines)
+                    )
+            elif isinstance(node, ast.Assert) and classification is FileClassification.SOURCE:
+                rule = "python.runtime-assert"
             if rule:
                 out.append(self.node(rule, node, source, sha, lines))
         return out
@@ -279,6 +350,13 @@ class DeterministicFindingsAnalyzer:
         )
 
     @staticmethod
+    def false_kw(node: ast.Call, name: str) -> bool:
+        return any(
+            k.arg == name and isinstance(k.value, ast.Constant) and k.value.value is False
+            for k in node.keywords
+        )
+
+    @staticmethod
     def network(name: str) -> bool:
         parts = name.split(".")
         return (
@@ -286,6 +364,13 @@ class DeterministicFindingsAnalyzer:
             and parts[0] in {"requests", "httpx"}
             and parts[-1] in {"get", "post", "put", "patch", "delete", "head", "request"}
         )
+
+    @staticmethod
+    def debug_target(node: ast.expr) -> bool:
+        return DeterministicFindingsAnalyzer.name(node).lower().rsplit(".", 1)[-1] in {
+            "debug",
+            "debug_mode",
+        }
 
     @staticmethod
     def broad(node: ast.expr | None) -> bool:
@@ -316,15 +401,14 @@ class DeterministicFindingsAnalyzer:
         )
 
     @staticmethod
-    def large_file_eligible(source: SourceFile) -> bool:
-        path = PurePosixPath(source.metadata.path)
-        lowered_parts = tuple(part.lower() for part in path.parts)
-        name = lowered_parts[-1]
-        return (
-            not source.metadata.is_generated
-            and name not in LARGE_FILE_EXCLUDED_NAMES
-            and not name.endswith(LARGE_FILE_GENERATED_SUFFIXES)
-            and LARGE_FILE_EXCLUDED_DIRECTORIES.isdisjoint(lowered_parts[:-1])
+    def classification(source: SourceFile) -> FileClassification:
+        return classify_file(
+            source.metadata.path,
+            language=source.metadata.language,
+            is_test=source.metadata.is_test,
+            is_documentation=source.metadata.is_documentation,
+            is_configuration=source.metadata.is_configuration,
+            content_prefix=source.content,
         )
 
     @staticmethod

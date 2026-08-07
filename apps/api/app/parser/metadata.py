@@ -1,6 +1,7 @@
 import hashlib
 from pathlib import PurePosixPath
 
+from app.parser.classification import FileClassification, classify_file
 from app.parser.types import SourceFileMetadata
 
 _CONFIG_NAMES = frozenset(
@@ -26,9 +27,20 @@ def build_metadata(
         part in {"doc", "docs", "documentation"} for part in lowered_parts[:-1]
     )
     is_configuration = language in {"json", "yaml", "toml"} or name in _CONFIG_NAMES
-    is_generated = any(part in {"generated", "gen"} for part in lowered_parts[:-1]) or any(
-        marker in name for marker in (".generated.", ".min.js", ".min.css")
+    classification = classify_file(
+        relative_path,
+        language=language,
+        is_test=is_test,
+        is_documentation=is_documentation,
+        is_configuration=is_configuration,
+        content_prefix=content,
     )
+    is_generated = classification in {
+        FileClassification.GENERATED,
+        FileClassification.BUILD_OUTPUT,
+        FileClassification.VENDOR,
+        FileClassification.MINIFIED,
+    }
     return SourceFileMetadata(
         path=relative_path,
         file_name=path.name,

@@ -19,7 +19,10 @@ from app.services.suggested_fix import SuggestedFixService
 
 
 def service(
-    provider: SuggestedFixProvider, *, content: str = "value = eval(user_input)"
+    provider: SuggestedFixProvider,
+    *,
+    content: str = "value = eval(user_input)",
+    rule_id: str = "python.eval",
 ) -> tuple[SuggestedFixService, SimpleNamespace]:
     analysis_id, repository_id, finding_id, file_id = uuid4(), uuid4(), uuid4(), uuid4()
     analysis = SimpleNamespace(
@@ -28,7 +31,7 @@ def service(
     finding = SimpleNamespace(
         id=finding_id,
         repository_file_id=file_id,
-        rule_id="python.eval",
+        rule_id=rule_id,
         explanation="eval executes code",
         deterministic_recommendation="Use explicit parsing.",
         path="src/app.py",
@@ -84,6 +87,19 @@ async def test_mock_suggested_fix_is_deterministic_bounded_and_grounded() -> Non
     assert first.provider == "mock"
     assert first.citations[0].path == "src/app.py"
     assert len(provider.suggested_fix_requests[0].evidence.excerpt) == 80
+
+
+async def test_new_rule_remains_compatible_with_mock_suggested_fix() -> None:
+    provider = MockLLMProvider()
+    subject, ids = service(
+        provider,
+        content="def collect(items=[]):\n    return items",
+        rule_id="python.mutable-default-argument",
+    )
+    result = await subject.generate(ids.analysis_id, ids.finding_id, None)
+    assert result.rule_id == "python.mutable-default-argument"
+    assert result.probable_fix
+    assert result.citations
 
 
 async def test_secret_and_prompt_injection_are_redacted_untrusted_evidence() -> None:
