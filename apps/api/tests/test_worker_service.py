@@ -19,9 +19,11 @@ from app.repositories import (
     CodeFindingRepository,
     ParsedRepository,
     RepositoryRepository,
+    RepositoryStructureRepository,
 )
 from app.schemas import RepositoryIngestionResult
 from app.services.worker import AnalysisWorkerService
+from app.structure import RepositoryStructureExtractor, StructureAnalysisResult
 
 
 class FakeIngestion:
@@ -101,6 +103,7 @@ async def test_successful_parsing_completes_analysis_as_ready(
         "repository_ingestion",
         "repository_parsing",
         "code_findings",
+        "repository_intelligence",
     ]
     assert all(stage.status is AnalysisStageStatus.COMPLETED for stage in stages)
     assert all(stage.progress_percent == 100 for stage in stages)
@@ -117,6 +120,7 @@ async def test_successful_parsing_completes_analysis_as_ready(
     assert result.progress_percent == 100
     assert ingestion.workspace_path is not None and not ingestion.workspace_path.exists()
     assert await CodeFindingRepository(worker_session).list_for_analysis(job.id) is not None
+    assert await RepositoryStructureRepository(worker_session).get(job.id) is not None
 
 
 async def test_non_queued_job_is_not_claimed(worker_session: AsyncSession) -> None:
@@ -205,7 +209,7 @@ async def test_stage_attempt_increments_when_pending_stage_exists(
     ingestion_stage = await stages.get_by_name(job.id, "repository_ingestion")
     assert ingestion_stage is not None
     assert ingestion_stage.attempt == 2
-    assert result.stage_name == "code_findings"
+    assert result.stage_name == "repository_intelligence"
 
 
 async def test_ingestion_failure_marks_stage_and_analysis_failed(
@@ -242,6 +246,11 @@ class FailingParser(RepositoryParser):
 class FailingFindingsAnalyzer(DeterministicFindingsAnalyzer):
     def analyze(self, result: RepositoryParseResult, *, commit_sha: str) -> FindingsAnalysisResult:
         raise ValueError("forced findings failure")
+
+
+class FailingStructureExtractor(RepositoryStructureExtractor):
+    def analyze(self, result: RepositoryParseResult) -> StructureAnalysisResult:
+        raise ValueError("forced structure failure")
 
 
 async def test_parsing_failure_marks_parsing_stage_failed_and_cleans_workspace(
@@ -284,3 +293,21 @@ async def test_findings_failure_preserves_persisted_parser_data(
     assert parsed is not None
     assert parsed.files_analyzed == 1
     assert parsed.chunks_created == 1
+
+
+async def test_structure_failure_preserves_parser_and_findings_data(
+    worker_session: AsyncSession,
+) -> None:
+    _repository, job = await queued_job(worker_session)
+    result = await AnalysisWorkerService(
+        session=worker_session,
+        ingestion=FakeIngestion(),
+        structure_extractor=FailingStructureExtractor(maximum_edges=10),
+    ).process(job.id)
+    stage = await AnalysisStageRepository(worker_session).get_by_name(
+        job.id, "repository_intelligence"
+    )
+    assert result.error_code == "analysis_stage_failed"
+    assert stage is not None and stage.status is AnalysisStageStatus.FAILED
+    assert await ParsedRepository(worker_session).get_summary(job.id) is not None
+    assert await CodeFindingRepository(worker_session).list_for_analysis(job.id) is not None

@@ -101,6 +101,51 @@ export interface SuggestedFix {
   limitations: string[]
   correlation_id: string | null
 }
+export interface StructureFile {
+  repository_file_id: string
+  path: string
+  language: string
+  classification: string
+  line_count: number
+  content_hash: string
+  commit_sha: string
+  is_entry_point: boolean
+  entry_point_reason: string | null
+  entry_point_confidence: number
+  inbound_dependency_count: number
+  outbound_dependency_count: number
+  total_dependency_count: number
+}
+export interface StructureEdge {
+  id: string
+  source_repository_file_id: string
+  target_repository_file_id: string
+  relationship_type: 'imports' | 'requires' | 'reexports'
+  module_name: string
+  source_path: string
+  target_path: string
+  source_line: number
+  confidence: number
+  source_url: string
+}
+export interface StructureResponse {
+  analysis_job_id: string
+  repository: { id: string; owner: string; name: string; commit_sha: string }
+  files: StructureFile[]
+  dependency_edges: StructureEdge[]
+  entry_points: StructureFile[]
+  summary: {
+    file_count: number
+    directory_count: number
+    language_counts: Record<string, number>
+    edge_count: number
+    entry_point_count: number
+    highest_inbound_files: StructureFile[]
+    highest_outbound_files: StructureFile[]
+    most_connected_files: StructureFile[]
+  }
+  limitations: string[]
+}
 export interface Citation {
   chunk_id: string
   repository_file_id: string

@@ -6,6 +6,7 @@ import type {
   FindingCategory,
   FindingSeverity,
   SuggestedFix,
+  StructureResponse,
 } from './types'
 export const getAnalysis = (id: string) => request<Analysis>(`/analyses/${id}`)
 export const getAnalysisSummary = (id: string) =>
@@ -23,3 +24,13 @@ export const generateSuggestedFix = (analysisId: string, findingId: string) =>
   request<SuggestedFix>(`/analyses/${analysisId}/findings/${findingId}/suggested-fix`, {
     method: 'POST',
   })
+export const getRepositoryStructure = (
+  analysisId: string,
+  filters: { language?: string; pathPrefix?: string; relationshipType?: string },
+) => {
+  const params = new URLSearchParams({ limit: '500' })
+  if (filters.language) params.set('language', filters.language)
+  if (filters.pathPrefix) params.set('path_prefix', filters.pathPrefix)
+  if (filters.relationshipType) params.set('relationship_type', filters.relationshipType)
+  return request<StructureResponse>(`/analyses/${analysisId}/structure?${params}`)
+}

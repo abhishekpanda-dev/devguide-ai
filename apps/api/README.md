@@ -174,3 +174,13 @@ assertions, and `requests`/`httpx` calls with `verify=False`.
 Info, warning, and high indicate increasing review priority, not certainty. Stable rule confidence
 values are deterministic. Findings are bounded review signals and may contain false positives or
 false negatives; they are not confirmed vulnerabilities.
+
+## Repository structure intelligence
+
+The `repository_intelligence` worker stage persists probable entry points, repository-local static
+dependencies, and inbound/outbound/total dependency counts for Python, JavaScript, and TypeScript.
+Python uses AST imports. JavaScript/TypeScript support literal ES imports, reexports, and
+`require("...")`; dynamic expressions and external packages are ignored rather than guessed.
+Resolution is bounded to known persisted files and `DEVGUIDE_MAXIMUM_DEPENDENCY_EDGES_PER_ANALYSIS`.
+No repository code, build tool, or package manager is executed. These edges are deterministic static
+evidence and do not prove runtime behavior.

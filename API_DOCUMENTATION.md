@@ -162,3 +162,12 @@ The findings API remains backward compatible. Its deterministic analyzer central
 supported lockfiles, generated/build/vendor content, minified assets, and source maps. New stable
 rule IDs are `python.mutable-default-argument`, `python.bare-except`, `python.runtime-assert`, and
 `security.tls-verification-disabled`. Exact commit, path, and line citations are unchanged.
+
+## Repository structure
+
+`GET /api/v1/analyses/{analysis_id}/structure` returns persisted files, probable entry points,
+repository-local dependency edges, coupling counts, language/directory summaries, limitations, and
+trusted immutable GitHub evidence links. Optional `language`, repository-relative `path_prefix`,
+`relationship_type` (`imports`, `requires`, or `reexports`), and bounded `limit` filters are
+supported. Client input cannot create edges or source metadata. Zero-edge completed analyses return
+an empty edge list rather than a not-ready error.

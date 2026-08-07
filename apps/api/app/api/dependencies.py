@@ -16,6 +16,7 @@ from app.repositories import (
     CodeFindingRepository,
     ParsedRepository,
     RepositoryRepository,
+    RepositoryStructureRepository,
 )
 from app.services import (
     AnalysisJobService,
@@ -27,6 +28,7 @@ from app.services import (
 from app.services.grounded_answer import GroundedAnswerService
 from app.services.health import HealthService
 from app.services.readiness import DatabaseReadinessService, ReadinessService
+from app.services.structure import RepositoryStructureService
 from app.services.suggested_fix import SuggestedFixService
 
 
@@ -63,6 +65,10 @@ def get_code_finding_repository(session: AsyncSessionDependency) -> CodeFindingR
     return CodeFindingRepository(session)
 
 
+def get_structure_repository(session: AsyncSessionDependency) -> RepositoryStructureRepository:
+    return RepositoryStructureRepository(session)
+
+
 RepositoryRepositoryDependency = Annotated[RepositoryRepository, Depends(get_repository_repository)]
 AnalysisJobRepositoryDependency = Annotated[
     AnalysisJobRepository, Depends(get_analysis_job_repository)
@@ -70,6 +76,9 @@ AnalysisJobRepositoryDependency = Annotated[
 ParsedRepositoryDependency = Annotated[ParsedRepository, Depends(get_parsed_repository)]
 CodeFindingRepositoryDependency = Annotated[
     CodeFindingRepository, Depends(get_code_finding_repository)
+]
+StructureRepositoryDependency = Annotated[
+    RepositoryStructureRepository, Depends(get_structure_repository)
 ]
 
 
@@ -203,6 +212,17 @@ def get_suggested_fix_service(
 
 
 SuggestedFixServiceDependency = Annotated[SuggestedFixService, Depends(get_suggested_fix_service)]
+
+
+def get_structure_service(
+    jobs: AnalysisJobRepositoryDependency,
+    repositories: RepositoryRepositoryDependency,
+    structures: StructureRepositoryDependency,
+) -> RepositoryStructureService:
+    return RepositoryStructureService(jobs, repositories, structures)
+
+
+StructureServiceDependency = Annotated[RepositoryStructureService, Depends(get_structure_service)]
 SubmissionServiceDependency = Annotated[
     RepositorySubmissionService, Depends(get_submission_service)
 ]

@@ -62,6 +62,7 @@ class Settings(BaseSettings):
     ai_temperature: float = Field(default=0.0, ge=0, le=1)
     findings_large_file_line_threshold: int = Field(default=1000, ge=100, le=100_000)
     maximum_findings_per_analysis: int = Field(default=2000, ge=1, le=20_000)
+    maximum_dependency_edges_per_analysis: int = Field(default=5000, ge=1, le=100_000)
 
     @field_validator("anthropic_api_key", mode="before")
     @classmethod
