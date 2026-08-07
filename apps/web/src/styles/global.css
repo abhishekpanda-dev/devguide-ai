@@ -589,6 +589,301 @@ select {
   border-color: var(--border);
   background: var(--surface-muted);
 }
+
+.comingSoonTooltip {
+  position: relative;
+  display: inline-flex;
+}
+.comingSoonTooltip > [role='tooltip'] {
+  position: absolute;
+  z-index: 80;
+  right: 0;
+  top: calc(100% + 0.5rem);
+  width: max-content;
+  max-width: 12rem;
+  padding: 0.35rem 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: 0.4rem;
+  background: #10151d;
+  color: var(--text);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.38);
+  font-size: 0.75rem;
+  line-height: 1.35;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-3px);
+  transition:
+    opacity 0.14s ease,
+    transform 0.14s ease;
+}
+.comingSoonTooltip:hover > [role='tooltip'],
+.comingSoonTooltip:focus-within > [role='tooltip'] {
+  opacity: 1;
+  transform: translateY(0);
+}
+.toolsLauncherButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 2.25rem;
+  padding: 0.4rem 0.65rem;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
+  border-radius: 0.45rem;
+  background: rgba(54, 211, 153, 0.06);
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+}
+.toolsLauncherButton:hover,
+.toolsLauncherButton:focus-visible {
+  border-color: var(--accent);
+  background: rgba(54, 211, 153, 0.11);
+  transform: translateY(-1px);
+}
+.toolsLauncherButton span {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.plannedToolsBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+  background: rgba(2, 5, 9, 0.78);
+  backdrop-filter: blur(5px);
+}
+.plannedToolsDialog {
+  width: min(68rem, 100%);
+  max-height: min(52rem, calc(100dvh - 2.5rem));
+  overflow: hidden;
+  border: 1px solid #2a3442;
+  border-radius: 0.9rem;
+  background: #0b1017;
+  color: var(--text);
+  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.58);
+}
+.plannedToolsDialogHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.15rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(100deg, rgba(54, 211, 153, 0.055), rgba(90, 125, 255, 0.04));
+}
+.plannedToolsDialogHeader h2 {
+  margin: 0.15rem 0 0;
+  font-size: 1.35rem;
+}
+.plannedToolsClose,
+.plannedToolsBack {
+  border: 1px solid var(--border);
+  border-radius: 0.45rem;
+  background: #121923;
+  color: var(--text);
+  padding: 0.48rem 0.72rem;
+  cursor: pointer;
+  font: inherit;
+}
+.plannedToolsClose:hover,
+.plannedToolsClose:focus-visible,
+.plannedToolsBack:hover,
+.plannedToolsBack:focus-visible {
+  border-color: var(--accent);
+  background: #17212d;
+}
+.plannedToolsMenu,
+.plannedToolDetail {
+  max-height: calc(100dvh - 9rem);
+  overflow: auto;
+  padding: 1.25rem;
+  scrollbar-color: #344355 transparent;
+}
+.plannedToolsSearch {
+  display: grid;
+  gap: 0.4rem;
+  margin-bottom: 1.2rem;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+.plannedToolsSearch input {
+  width: 100%;
+  min-height: 2.55rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: #090e14;
+  color: var(--text);
+  padding: 0.55rem 0.7rem;
+  font: inherit;
+}
+.plannedToolsMenu > section + section {
+  margin-top: 1.3rem;
+}
+.plannedToolsMenu h3,
+.plannedToolDetail h3 {
+  margin: 0 0 0.7rem;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+.plannedToolsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+.plannedToolsGrid .comingSoonTooltip {
+  min-width: 0;
+}
+.plannedToolCard {
+  position: relative;
+  display: grid;
+  gap: 0.55rem;
+  width: 100%;
+  height: 100%;
+  min-height: 7.2rem;
+  padding: 0.8rem;
+  overflow: hidden;
+  text-align: left;
+  border: 1px solid var(--border);
+  border-radius: 0.65rem;
+  background: #10161f;
+  color: var(--text-muted);
+  cursor: pointer;
+  font: inherit;
+  line-height: 1.45;
+  transition:
+    border-color 0.14s ease,
+    background 0.14s ease,
+    transform 0.14s ease;
+}
+.plannedToolCard::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--tool-accent);
+}
+.plannedToolCard-green {
+  --tool-accent: #36d399;
+}
+.plannedToolCard-blue {
+  --tool-accent: #6295ff;
+}
+.plannedToolCard-amber {
+  --tool-accent: #e9ad55;
+}
+.plannedToolCard-purple {
+  --tool-accent: #a98bff;
+}
+.plannedToolCard:hover,
+.plannedToolCard:focus-visible {
+  border-color: var(--tool-accent);
+  background: #131b26;
+  transform: translateY(-2px);
+}
+.plannedToolCardTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.plannedToolCard strong {
+  color: var(--text);
+  font-size: 0.9rem;
+}
+.comingSoonBadge {
+  flex: 0 0 auto;
+  display: inline-flex;
+  width: max-content;
+  border: 1px solid #5d4b27;
+  border-radius: 999px;
+  background: rgba(233, 173, 85, 0.08);
+  color: #efc779;
+  padding: 0.15rem 0.42rem;
+  font-size: 0.68rem;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.055em;
+}
+.plannedToolDetail {
+  display: grid;
+  gap: 1.2rem;
+}
+.plannedToolSummary {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 1.02rem;
+  line-height: 1.6;
+}
+.plannedToolDetail section {
+  border-top: 1px solid var(--border);
+  padding-top: 1rem;
+}
+.plannedToolDetail ul {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+  padding-left: 1.2rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+.plannedToolDetailColumns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+.plannedToolNotice {
+  margin: 0;
+  padding: 0.85rem 1rem;
+  border: 1px solid #5d4b27;
+  border-radius: 0.55rem;
+  background: rgba(233, 173, 85, 0.065);
+  color: #ead9b8;
+  line-height: 1.55;
+}
+@media (max-width: 980px) {
+  .plannedToolsGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 620px) {
+  .plannedToolsBackdrop {
+    padding: 0;
+    align-items: stretch;
+  }
+  .plannedToolsDialog {
+    max-height: 100dvh;
+    min-height: 100dvh;
+    border-radius: 0;
+    border-width: 0;
+  }
+  .plannedToolsMenu,
+  .plannedToolDetail {
+    max-height: calc(100dvh - 5rem);
+    padding: 1rem;
+  }
+  .plannedToolsGrid,
+  .plannedToolDetailColumns {
+    grid-template-columns: 1fr;
+  }
+  .plannedToolCard {
+    min-height: auto;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .comingSoonTooltip > [role='tooltip'],
+  .plannedToolCard,
+  .toolsLauncherButton {
+    transition: none;
+  }
+}
 .dashboardGrid {
   display: grid;
   grid-template-columns: 260px minmax(420px, 1fr) 350px;

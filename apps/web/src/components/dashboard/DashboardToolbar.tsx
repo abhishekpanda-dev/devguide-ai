@@ -1,5 +1,6 @@
 import { Link } from 'react-router'
 import type { Analysis, Repository } from '../../api/types'
+import { PlannedToolsLauncher } from '../planned-tools/PlannedToolsLauncher'
 
 export function DashboardToolbar({
   repository,
@@ -39,6 +40,7 @@ export function DashboardToolbar({
         <Link to={`/analyses/${analysis.id}/findings`}>Findings</Link>
         <Link to={`/analyses/${analysis.id}/structure`}>Structure</Link>
         <Link to={`/analyses/${analysis.id}/quality`}>Quality</Link>
+        <PlannedToolsLauncher />
       </nav>
     </header>
   )

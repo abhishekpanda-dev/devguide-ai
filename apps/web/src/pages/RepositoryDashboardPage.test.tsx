@@ -144,6 +144,7 @@ test('renders the dark shell with real metrics, workspace data, links, and toolb
     'href',
     finding.source_url,
   )
+  expect(screen.getByRole('button', { name: /Tools/ })).toHaveTextContent('Planned')
 })
 
 test('renders a full-shell loading state', () => {
