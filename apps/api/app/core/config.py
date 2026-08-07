@@ -2,6 +2,7 @@ from functools import lru_cache
 from pathlib import Path
 from tempfile import gettempdir
 from typing import Literal
+from urllib.parse import urlsplit
 
 from pydantic import AliasChoices, AnyUrl, Field, PostgresDsn, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -21,6 +22,12 @@ class Settings(BaseSettings):
     app_version: str = Field(default="0.1.0", min_length=1)
     environment: Literal["local", "test", "staging", "production"] = "local"
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
+    cors_allowed_origins: tuple[str, ...] = (
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5174",
+    )
     database_url: PostgresDsn = PostgresDsn(
         "postgresql+asyncpg://devguide:devguide@localhost:5432/devguide"
     )
@@ -60,6 +67,31 @@ class Settings(BaseSettings):
         if value.scheme != "postgresql+asyncpg":
             raise ValueError("database_url must use the postgresql+asyncpg scheme")
         return value
+
+    @field_validator("cors_allowed_origins")
+    @classmethod
+    def validate_cors_allowed_origins(cls, value: tuple[str, ...]) -> tuple[str, ...]:
+        if not value:
+            raise ValueError("cors_allowed_origins must contain at least one origin")
+        normalized: list[str] = []
+        for origin in value:
+            candidate = origin.strip().rstrip("/")
+            parsed = urlsplit(candidate)
+            if (
+                parsed.scheme not in {"http", "https"}
+                or not parsed.hostname
+                or parsed.username
+                or parsed.password
+                or parsed.path
+                or parsed.query
+                or parsed.fragment
+                or "*" in candidate
+            ):
+                raise ValueError("cors_allowed_origins entries must be explicit HTTP(S) origins")
+            normalized.append(candidate)
+        if len(set(normalized)) != len(normalized):
+            raise ValueError("cors_allowed_origins entries must be unique")
+        return tuple(normalized)
 
     @field_validator("temporary_workspace_root")
     @classmethod

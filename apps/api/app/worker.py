@@ -4,6 +4,7 @@ from uuid import UUID
 from arq.connections import RedisSettings
 
 from app.core.config import get_settings
+from app.core.logging import configure_logging
 from app.db.session import create_session_factory
 from app.repositories import AnalysisJobRepository, RepositoryRepository
 from app.services.ingestion import RepositoryIngestionService
@@ -37,6 +38,7 @@ async def process_analysis(ctx: dict[str, Any], analysis_job_id: str) -> dict[st
 
 async def startup(ctx: dict[str, Any]) -> None:
     settings = get_settings()
+    configure_logging(settings.log_level)
     ctx["settings"] = settings
     ctx["session_factory"] = create_session_factory(settings)
 

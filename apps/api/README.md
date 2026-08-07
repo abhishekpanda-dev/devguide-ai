@@ -104,6 +104,11 @@ The parser performs no AST extraction, framework detection, AI calls, embeddings
 
 Configuration uses `DEVGUIDE_`-prefixed environment variables. See the repository `.env.example`. Never place production credentials in that file or logs.
 
+For local frontend development, `DEVGUIDE_CORS_ALLOWED_ORIGINS` accepts a JSON array of explicit
+HTTP(S) origins. Its safe defaults cover Vite on ports 5173 and 5174 through both `localhost` and
+`127.0.0.1`. Wildcard origins are rejected; deployments should replace the defaults with their
+exact trusted frontend origins.
+
 ## Endpoints
 
 - `GET /api/v1/health` reports process liveness without contacting external services.
