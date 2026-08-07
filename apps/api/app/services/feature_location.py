@@ -52,8 +52,10 @@ _STOP = {
     "tests",
     "test",
     "cover",
+    "could",
     "this",
     "feature",
+    "and",
     "trace",
     "the",
     "request",
@@ -68,6 +70,7 @@ _STOP = {
     "as",
     "about",
     "module",
+    "review",
     "service",
 }
 _TOKEN = re.compile(r"[A-Za-z0-9_.-]+")
