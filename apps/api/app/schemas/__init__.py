@@ -14,6 +14,13 @@ from app.schemas.parser import (
     RepositoryParseSummary,
 )
 from app.schemas.repository import RepositoryCreate, RepositoryRead
+from app.schemas.retrieval import (
+    MatchedChannel,
+    RepositoryEvidence,
+    SearchCoverage,
+    SearchRepositoryRequest,
+    SearchRepositoryResult,
+)
 from app.schemas.submission import (
     RepositoryAnalysisListResponse,
     RepositorySubmissionRequest,
@@ -26,13 +33,18 @@ __all__ = [
     "AnalysisStageCreate",
     "AnalysisStageRead",
     "CodeChunkRead",
+    "MatchedChannel",
     "ParserPersistenceResult",
     "RepositoryAnalysisListResponse",
     "RepositoryCreate",
+    "RepositoryEvidence",
     "RepositoryFileRead",
     "RepositoryIngestionResult",
     "RepositoryParseSummary",
     "RepositoryRead",
     "RepositorySubmissionRequest",
     "RepositorySubmissionResponse",
+    "SearchCoverage",
+    "SearchRepositoryRequest",
+    "SearchRepositoryResult",
 ]

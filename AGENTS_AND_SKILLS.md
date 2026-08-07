@@ -4,7 +4,14 @@
 
 ## Document status
 
-**Status:** Custom agent and skill specifications complete; runtime implementation not started.
+**Status:** Search Repository deterministic lexical runtime foundation implemented; Repository
+Intelligence Agent and AI generation remain unimplemented.
+
+The runtime skill is internal and analysis-scoped. It searches persisted chunks by exact and
+partial path, phrase, token overlap, simple class/function/method/configuration-key patterns,
+language, and path prefix; then returns validated citations or an explicit insufficient-evidence
+result. Semantic embeddings, pgvector, Claude, repository overview generation, and final answer
+generation are not implemented.
 
 These documents define bounded AI behavior for the planned DevGuide AI MVP. They do not provide executable agent, retrieval, backend, database, or model-provider functionality.
 
