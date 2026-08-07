@@ -11,10 +11,16 @@ from app.ai.retrieval import SearchRepositorySkill
 from app.core.exceptions import AnalysisNotFoundError, AnalysisNotReadyError
 from app.db.session import get_db_session
 from app.models import AnalysisJob, AnalysisJobStatus
-from app.repositories import AnalysisJobRepository, ParsedRepository, RepositoryRepository
+from app.repositories import (
+    AnalysisJobRepository,
+    CodeFindingRepository,
+    ParsedRepository,
+    RepositoryRepository,
+)
 from app.services import (
     AnalysisJobService,
     AnalysisSummaryService,
+    CodeFindingService,
     RepositoryService,
     RepositorySubmissionService,
 )
@@ -52,11 +58,18 @@ def get_parsed_repository(session: AsyncSessionDependency) -> ParsedRepository:
     return ParsedRepository(session)
 
 
+def get_code_finding_repository(session: AsyncSessionDependency) -> CodeFindingRepository:
+    return CodeFindingRepository(session)
+
+
 RepositoryRepositoryDependency = Annotated[RepositoryRepository, Depends(get_repository_repository)]
 AnalysisJobRepositoryDependency = Annotated[
     AnalysisJobRepository, Depends(get_analysis_job_repository)
 ]
 ParsedRepositoryDependency = Annotated[ParsedRepository, Depends(get_parsed_repository)]
+CodeFindingRepositoryDependency = Annotated[
+    CodeFindingRepository, Depends(get_code_finding_repository)
+]
 
 
 def get_llm_provider(request: Request) -> LLMProvider:
@@ -139,6 +152,14 @@ def get_analysis_summary_service(
     return AnalysisSummaryService(jobs, parsed)
 
 
+def get_code_finding_service(
+    jobs: AnalysisJobRepositoryDependency,
+    repositories: RepositoryRepositoryDependency,
+    findings: CodeFindingRepositoryDependency,
+) -> CodeFindingService:
+    return CodeFindingService(jobs, repositories, findings)
+
+
 def get_submission_service(
     request: Request,
     session: AsyncSessionDependency,
@@ -159,6 +180,7 @@ AnalysisJobServiceDependency = Annotated[AnalysisJobService, Depends(get_analysi
 AnalysisSummaryServiceDependency = Annotated[
     AnalysisSummaryService, Depends(get_analysis_summary_service)
 ]
+CodeFindingServiceDependency = Annotated[CodeFindingService, Depends(get_code_finding_service)]
 SubmissionServiceDependency = Annotated[
     RepositorySubmissionService, Depends(get_submission_service)
 ]

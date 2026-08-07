@@ -90,9 +90,7 @@ class ParsedRepository:
                         func.sum(case((RepositoryFile.is_test.is_(True), 1), else_=0)), 0
                     ),
                     func.coalesce(
-                        func.sum(
-                            case((RepositoryFile.is_documentation.is_(True), 1), else_=0)
-                        ),
+                        func.sum(case((RepositoryFile.is_documentation.is_(True), 1), else_=0)),
                         0,
                     ),
                 ).where(RepositoryFile.analysis_job_id == analysis_job_id)

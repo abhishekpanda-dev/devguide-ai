@@ -616,6 +616,69 @@ summary {
 .limitations ul {
   margin-bottom: 0;
 }
+.findingSummary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3);
+  margin: var(--space-5) 0;
+}
+.findingCount {
+  display: flex;
+  justify-content: space-between;
+  padding: var(--space-4);
+  border-left: 4px solid var(--accent);
+  background: var(--surface);
+}
+.findingCount span,
+.findingSeverity {
+  text-transform: uppercase;
+  font-weight: 750;
+}
+.finding-high {
+  border-left-color: var(--error);
+}
+.finding-warning {
+  border-left-color: var(--warning);
+}
+.finding-info {
+  border-left-color: var(--accent);
+}
+.findingFilters {
+  display: flex;
+  gap: var(--space-4);
+  margin: var(--space-5) 0;
+}
+.findingFilters label {
+  font-weight: 650;
+}
+.findingFilters select {
+  display: block;
+  margin-top: var(--space-1);
+  padding: 0.55rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+.findingCard pre {
+  padding: var(--space-3);
+  overflow: auto;
+  background: #111827;
+  color: #e5e7eb;
+  border-radius: var(--radius-sm);
+}
+.findingLocation {
+  color: var(--text-muted);
+}
+.findingRecommendation {
+  padding: var(--space-3);
+  background: var(--surface-muted);
+}
+.findingRecommendation p {
+  margin: var(--space-1) 0 0;
+}
+.findingSeverity {
+  color: var(--text-muted);
+}
 .statisticsGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

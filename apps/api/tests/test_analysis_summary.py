@@ -121,9 +121,7 @@ async def test_summary_is_isolated_to_requested_analysis(
     first_summary = await service.get_required(first.id)
     second_summary = await service.get_required(second.id)
 
-    assert [(item.language, item.line_count) for item in first_summary.languages] == [
-        ("python", 2)
-    ]
+    assert [(item.language, item.line_count) for item in first_summary.languages] == [("python", 2)]
     assert [(item.language, item.line_count) for item in second_summary.languages] == [
         ("typescript", 1)
     ]

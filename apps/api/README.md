@@ -112,13 +112,21 @@ alembic upgrade head --sql
 python -c "from app.main import app; assert app.title == 'DevGuide AI API'"
 ```
 
-Run the worker with `arq app.worker.WorkerSettings`. A successful ingestion leaves the overall analysis `running` at 20%; parsing, language detection, indexing, embeddings, and later analysis stages are not implemented.
+Run the worker with `arq app.worker.WorkerSettings`. It performs ingestion, parsing, parser-data persistence, and deterministic code findings before marking the analysis completed and ready. Embeddings and broader report stages are not implemented.
 
 ## Internal parser foundation
 
 `app.parser.RepositoryParser` deterministically reads an existing repository workspace and returns accepted source files, extension-based language identifiers, SHA-256 metadata, line-based chunks, and repository summary statistics. It is internal only and is not called by the API or worker. Supported inputs are Python, JavaScript, TypeScript, Java, HTML, CSS, JSON, YAML, Markdown, and TOML. Binary, unsupported, oversized, rejected-media/archive/executable files, ignored directories, and symbolic links are skipped.
 
-Chunking defaults to 200 lines with 20 lines of overlap and preserves one-based inclusive ranges. After ingestion, the worker parses the same temporary workspace and replaces analysis-scoped `repository_files` and `code_chunks` rows before cleanup. Successful parsing leaves the analysis running at 40%. There are no public file or chunk routes.
+Chunking defaults to 200 lines with 20 lines of overlap and preserves one-based inclusive ranges. After ingestion, the worker parses the same temporary workspace and replaces analysis-scoped `repository_files` and `code_chunks` rows before running deterministic findings and cleanup. There are no public file or chunk routes.
+
+## Deterministic code findings
+
+The final worker stage scans accepted parser files without executing repository code. It detects TODO/FIXME/HACK markers, configurable large application source files, and bounded Python patterns covering `eval`, `exec`, broad or empty exception handling, `subprocess` shell mode, likely hardcoded credentials, debug enablement, and HTTP calls without an explicit timeout. The large-file rule excludes dependency lockfiles, generated files, source maps, minified assets, and files beneath `node_modules`, `dist`, `build`, or `vendor`. Findings use informational, warning, or high severity and maintainability, reliability, or security categories. They are deterministic review leads, not proof of a vulnerability.
+
+Findings and a readiness marker are stored per analysis, including zero-finding runs. Evidence excerpts are bounded and credential-like literals are redacted. `DEVGUIDE_FINDINGS_LARGE_FILE_LINE_THRESHOLD` and `DEVGUIDE_MAXIMUM_FINDINGS_PER_ANALYSIS` control the large-file rule and result bound. Duplicate delivery replaces the same analysis-scoped result idempotently.
+
+`GET /api/v1/analyses/{analysis_id}/findings` returns typed findings with optional `severity`, `category`, and repository-relative `path_prefix` filters. Source links are constructed only from the stored normalized GitHub repository URL, analyzed commit SHA, validated relative path, and one-based line range. Missing analyses return 404; analyses without a findings readiness marker return `analysis_not_ready`.
 
 The parser performs no AST extraction, framework detection, AI calls, embeddings, network access, or repository-code execution.
 

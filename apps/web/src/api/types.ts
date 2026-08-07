@@ -55,6 +55,33 @@ export interface AnalysisSummary {
   skipped_file_count: number
   limitations: string[]
 }
+export type FindingSeverity = 'info' | 'warning' | 'high'
+export type FindingCategory = 'maintainability' | 'reliability' | 'security'
+export interface CodeFinding {
+  id: string
+  rule_id: string
+  severity: FindingSeverity
+  category: FindingCategory
+  title: string
+  explanation: string
+  path: string
+  start_line: number
+  end_line: number
+  evidence_excerpt: string
+  deterministic_recommendation: string
+  confidence: number
+  content_hash: string
+  commit_sha: string
+  source_url: string
+}
+export interface CodeFindingsResponse {
+  analysis_job_id: string
+  total_count: number
+  returned_count: number
+  findings: CodeFinding[]
+  limitations: string[]
+  severity_counts: Record<FindingSeverity, number>
+}
 export interface Citation {
   chunk_id: string
   repository_file_id: string

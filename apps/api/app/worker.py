@@ -21,9 +21,9 @@ async def process_analysis(ctx: dict[str, Any], analysis_job_id: str) -> dict[st
             analysis_jobs=AnalysisJobRepository(session),
             settings=settings,
         )
-        result = await AnalysisWorkerService(session=session, ingestion=ingestion).process(
-            UUID(analysis_job_id)
-        )
+        result = await AnalysisWorkerService(
+            session=session, ingestion=ingestion, settings=settings
+        ).process(UUID(analysis_job_id))
         return {
             "analysis_job_id": str(result.analysis_job_id),
             "stage_name": result.stage_name,

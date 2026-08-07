@@ -24,6 +24,9 @@ def test_migration_upgrade_and_downgrade_render_postgresql_sql(
     assert "CREATE TABLE analysis_stages" in upgrade_sql
     assert "CREATE TABLE repository_files" in upgrade_sql
     assert "CREATE TABLE code_chunks" in upgrade_sql
+    assert "CREATE TABLE code_findings" in upgrade_sql
+    assert upgrade_sql.count("CREATE TYPE finding_severity") == 1
+    assert upgrade_sql.count("CREATE TYPE finding_category") == 1
     assert "ON DELETE RESTRICT" in upgrade_sql
 
     command.downgrade(migration_config(), "head:base", sql=True)
