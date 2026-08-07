@@ -6,7 +6,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import ApplicationValidationError, PersistenceError
-from app.models import CodeChunk, RepositoryFile
+from app.models import AnalysisParseMetadata, CodeChunk, RepositoryFile
 from app.parser import RepositoryParseResult
 from app.repositories import AnalysisJobRepository, ParsedRepository, RepositoryRepository
 from app.schemas import ParserPersistenceResult
@@ -82,7 +82,16 @@ class ParserPersistenceService:
             for chunk in result.chunks
         ]
         try:
-            await self._repository.replace(analysis_job_id, files, chunks)
+            await self._repository.replace(
+                analysis_job_id,
+                files,
+                chunks,
+                AnalysisParseMetadata(
+                    analysis_job_id=analysis_job_id,
+                    skipped_file_count=result.statistics.skipped_files,
+                    limitations=list(result.statistics.limitations),
+                ),
+            )
             await self._session.commit()
         except SQLAlchemyError as exc:
             await self._session.rollback()

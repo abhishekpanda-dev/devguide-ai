@@ -5,6 +5,7 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.exceptions import RepositoryWorkspaceError
 from app.ingestion import RepositoryWorkspace
 from app.models import (
     AnalysisJob,
@@ -20,6 +21,7 @@ from app.services.parser_persistence import ParserPersistenceService
 
 INGESTION_STAGE = "repository_ingestion"
 PARSING_STAGE = "repository_parsing"
+READY_STAGE = "ready"
 
 
 @dataclass(frozen=True, slots=True)
@@ -100,6 +102,7 @@ class AnalysisWorkerService:
                 "Repository ingestion could not be completed.",
             )
         ingestion_stage = await self._start_stage(claimed, INGESTION_STAGE, 10)
+        completed_result: WorkerResult | None = None
         try:
             with self._ingestion.create_workspace() as workspace:
                 ingestion = await self._ingestion.ingest_in_workspace(
@@ -117,19 +120,42 @@ class AnalysisWorkerService:
                     result=parsed,
                 )
                 self._complete_stage(parsing_stage)
-                claimed.status = AnalysisJobStatus.RUNNING
-                claimed.current_stage = PARSING_STAGE
-                claimed.progress_percent = 40
+                completed = await self._jobs.mark_completed(claimed.id, current_stage=READY_STAGE)
+                if completed is None:
+                    raise RuntimeError("Running analysis could not be marked completed.")
                 await self._session.commit()
-                return WorkerResult(
+                completed_result = WorkerResult(
                     claimed.id,
                     PARSING_STAGE,
                     parsing_stage.status,
-                    claimed.status,
+                    completed.status,
                     parsing_stage.attempt,
-                    40,
+                    completed.progress_percent,
                     limitations=tuple(parsed.statistics.limitations),
                 )
+            assert completed_result is not None
+            return completed_result
+        except RepositoryWorkspaceError:
+            if completed_result is not None:
+                return WorkerResult(
+                    completed_result.analysis_job_id,
+                    completed_result.stage_name,
+                    completed_result.stage_status,
+                    completed_result.analysis_status,
+                    completed_result.attempt,
+                    completed_result.progress_percent,
+                    limitations=(
+                        *completed_result.limitations,
+                        "The temporary repository workspace could not be fully cleaned up.",
+                    ),
+                )
+            stage = await self._stages.get_by_name(claimed.id, PARSING_STAGE) or ingestion_stage
+            message = (
+                "Repository parsing could not be completed."
+                if stage.name == PARSING_STAGE
+                else "Repository ingestion could not be completed."
+            )
+            return await self._fail(claimed, stage, message)
         except Exception:
             stage = await self._stages.get_by_name(claimed.id, PARSING_STAGE) or ingestion_stage
             message = (

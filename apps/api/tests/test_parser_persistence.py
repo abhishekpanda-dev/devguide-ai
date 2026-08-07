@@ -10,7 +10,7 @@ from sqlalchemy.pool import StaticPool
 
 from app.core.exceptions import ApplicationValidationError, PersistenceError
 from app.db.base import Base
-from app.models import AnalysisJob, CodeChunk, Repository, RepositoryFile
+from app.models import AnalysisJob, AnalysisParseMetadata, CodeChunk, Repository, RepositoryFile
 from app.parser import RepositoryParser, RepositoryParseResult
 from app.repositories import AnalysisJobRepository, ParsedRepository, RepositoryRepository
 from app.services.parser_persistence import ParserPersistenceService
@@ -98,6 +98,7 @@ class FailingParsedRepository(ParsedRepository):
         analysis_job_id: UUID,
         files: list[RepositoryFile],
         chunks: list[CodeChunk],
+        metadata: AnalysisParseMetadata | None = None,
     ) -> None:
         raise SQLAlchemyError("forced")
 

@@ -39,6 +39,22 @@ export interface AnalysisList {
   limit: number
   offset: number
 }
+export interface AnalysisLanguageSummary {
+  language: string
+  file_count: number
+  line_count: number
+}
+export interface AnalysisSummary {
+  analysis_job_id: string
+  files_analyzed: number
+  chunks_created: number
+  languages: AnalysisLanguageSummary[]
+  total_lines: number
+  test_file_count: number
+  documentation_file_count: number
+  skipped_file_count: number
+  limitations: string[]
+}
 export interface Citation {
   chunk_id: string
   repository_file_id: string

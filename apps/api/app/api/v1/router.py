@@ -5,6 +5,7 @@ from fastapi import APIRouter, Query, status
 
 from app.api.dependencies import (
     AnalysisJobServiceDependency,
+    AnalysisSummaryServiceDependency,
     HealthServiceDependency,
     QuestionReadyAnalysisDependency,
     ReadinessServiceDependency,
@@ -16,6 +17,7 @@ from app.core.exceptions import AppError, RepositoryQuestionFailedError
 from app.core.middleware import correlation_id_context
 from app.schemas import (
     AnalysisJobRead,
+    AnalysisSummary,
     RepositoryAgentResponse,
     RepositoryAnalysisListResponse,
     RepositoryQuestionRequest,
@@ -100,6 +102,14 @@ async def get_analysis(
 ) -> AnalysisJobRead:
     analysis = await service.get_required(analysis_id)
     return AnalysisJobRead.model_validate(analysis)
+
+
+@router.get("/analyses/{analysis_id}/summary", response_model=AnalysisSummary)
+async def get_analysis_summary(
+    analysis_id: UUID,
+    service: AnalysisSummaryServiceDependency,
+) -> AnalysisSummary:
+    return await service.get_required(analysis_id)
 
 
 @router.get(

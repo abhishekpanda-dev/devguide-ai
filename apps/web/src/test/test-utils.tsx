@@ -47,3 +47,17 @@ export const repository = {
   created_at: '2026-01-01T00:00:00Z',
   updated_at: '2026-01-01T00:00:00Z',
 } as const
+export const analysisSummary = {
+  analysis_job_id: 'a1',
+  files_analyzed: 12,
+  chunks_created: 24,
+  languages: [
+    { language: 'python', file_count: 8, line_count: 320 },
+    { language: 'markdown', file_count: 4, line_count: 80 },
+  ],
+  total_lines: 400,
+  test_file_count: 3,
+  documentation_file_count: 4,
+  skipped_file_count: 2,
+  limitations: ['vendor/: directory was skipped.'],
+} as const

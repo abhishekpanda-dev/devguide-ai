@@ -5,12 +5,13 @@ from app.models.enums import (
     RepositorySourceType,
     RepositoryStatus,
 )
-from app.models.parsed import CodeChunk, RepositoryFile
+from app.models.parsed import AnalysisParseMetadata, CodeChunk, RepositoryFile
 from app.models.repository import Repository
 
 __all__ = [
     "AnalysisJob",
     "AnalysisJobStatus",
+    "AnalysisParseMetadata",
     "AnalysisStage",
     "AnalysisStageStatus",
     "CodeChunk",
