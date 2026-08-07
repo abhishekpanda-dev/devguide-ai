@@ -215,6 +215,7 @@ class UnsupportedCitationService:
         correlation_id: str | None = None,
         maximum_citations: int = 10,
         structure_evidence: StructureEvidence | None = None,
+        feature_location: object | None = None,
     ) -> GroundedAnswer:
         return GroundedAnswer(
             answer="Unsupported.",
@@ -243,6 +244,7 @@ class FailingAnswerService:
         correlation_id: str | None = None,
         maximum_citations: int = 10,
         structure_evidence: StructureEvidence | None = None,
+        feature_location: object | None = None,
     ) -> GroundedAnswer:
         raise AIProviderUnavailableError
 

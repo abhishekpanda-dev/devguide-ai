@@ -26,6 +26,7 @@ from app.services import (
     RepositoryService,
     RepositorySubmissionService,
 )
+from app.services.feature_location import FeatureLocationService
 from app.services.grounded_answer import GroundedAnswerService
 from app.services.health import HealthService
 from app.services.quality import RepositoryQualityService
@@ -121,11 +122,40 @@ SearchRepositorySkillDependency = Annotated[
 ]
 
 
+def get_feature_location_service(
+    request: Request,
+    jobs: AnalysisJobRepositoryDependency,
+    parsed: ParsedRepositoryDependency,
+    structures: StructureRepositoryDependency,
+    repositories: RepositoryRepositoryDependency,
+    findings: CodeFindingRepositoryDependency,
+    quality: QualityRepositoryDependency,
+) -> FeatureLocationService:
+    settings = request.app.state.settings
+    return FeatureLocationService(
+        jobs,
+        parsed,
+        structures,
+        repositories,
+        findings,
+        quality,
+        maximum_files=settings.feature_location_file_limit,
+        neighbor_depth=settings.feature_location_neighbor_depth,
+        related_tests_limit=settings.feature_location_test_limit,
+    )
+
+
+FeatureLocationServiceDependency = Annotated[
+    FeatureLocationService, Depends(get_feature_location_service)
+]
+
+
 def get_repository_intelligence_agent(
     request: Request,
     search_skill: SearchRepositorySkillDependency,
     answer_service: GroundedAnswerServiceDependency,
     structures: StructureRepositoryDependency,
+    feature_location: FeatureLocationServiceDependency,
 ) -> RepositoryIntelligenceAgent:
     settings = request.app.state.settings
     return RepositoryIntelligenceAgent(
@@ -137,6 +167,7 @@ def get_repository_intelligence_agent(
             edge_limit=settings.structure_evidence_edge_limit,
             directory_limit=settings.structure_evidence_directory_limit,
         ),
+        feature_location,
     )
 
 

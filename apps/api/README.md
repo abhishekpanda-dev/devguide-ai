@@ -52,6 +52,14 @@ remain unimplemented.
 
 ## Repository-question endpoint
 
+Feature-location and change-impact intent is routed deterministically. Its bounded ranker combines
+normalized path/filename and persisted lexical matches with resolved local dependencies, probable
+entry points, connection counts, and test naming/reference signals. It distinguishes direct static,
+probable indirect, and unknown dynamic impact. `DEVGUIDE_FEATURE_LOCATION_FILE_LIMIT`,
+`DEVGUIDE_FEATURE_LOCATION_NEIGHBOR_DEPTH`, and `DEVGUIDE_FEATURE_LOCATION_TEST_LIMIT` default to
+8, 2, and 5. Mock mode remains deterministic and offline; Claude receives only bounded
+server-derived feature facts and cannot mint validated citations.
+
 `POST /api/v1/analyses/{analysis_id}/questions` is the minimal public boundary over the runtime
 agent. Only `question` is required. Optional language, path-prefix, retrieval-limit,
 minimum-score, and citation-limit controls are validated and mapped into the internal agent

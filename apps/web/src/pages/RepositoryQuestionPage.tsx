@@ -1,14 +1,20 @@
 import { FormEvent, useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
-import { Link, useParams } from 'react-router'
+import { Link, useParams, useSearchParams } from 'react-router'
 import { askQuestion } from '../api/questions'
 import type { QuestionRequest } from '../api/types'
 import { ApiErrorMessage } from '../components/feedback/ApiErrorMessage'
 import { CitationList } from '../components/questions/CitationList'
+import { FeatureLocationAnswer } from '../components/questions/FeatureLocationAnswer'
 
 export function RepositoryQuestionPage() {
   const { analysisId = '' } = useParams()
-  const [question, setQuestion] = useState('')
+  const [searchParams] = useSearchParams()
+  const [question, setQuestion] = useState(() =>
+    searchParams.get('path')
+      ? `What would be affected if I change ${searchParams.get('path')}?`
+      : '',
+  )
   const [error, setError] = useState<string | null>(null)
   const [languages, setLanguages] = useState('')
   const [pathPrefix, setPathPrefix] = useState('')
@@ -143,6 +149,9 @@ export function RepositoryQuestionPage() {
               {answer.answer ||
                 'DevGuide could not find enough relevant repository evidence to answer this question.'}
             </p>
+            {answer.feature_location && (
+              <FeatureLocationAnswer analysisId={analysisId} result={answer.feature_location} />
+            )}
             <CitationList citations={answer.citations} />
             {answer.limitations.length > 0 && (
               <section className="limitations">

@@ -174,6 +174,53 @@ export interface QuestionResponse {
   model: string | null
   limitations: string[]
   correlation_id: string | null
+  feature_location?: FeatureLocationResult | null
+}
+export interface FeatureFile {
+  repository_file_id: string
+  path: string
+  role:
+    | 'UI'
+    | 'API route'
+    | 'service'
+    | 'repository/data access'
+    | 'model/schema'
+    | 'configuration'
+    | 'worker/job'
+    | 'test'
+    | 'entry point'
+    | 'unknown'
+  role_inferred: boolean
+  confidence: number
+  reason: string
+  source_url: string
+  evidence: string[]
+  impact_kind: 'direct_static' | 'probable_indirect' | 'unknown_dynamic' | null
+}
+export interface FeatureLocationResult {
+  feature_location_used: true
+  intent: string
+  feature_phrase: string
+  likely_files: FeatureFile[]
+  impact_summary: {
+    direct_dependencies: FeatureFile[]
+    direct_dependents: FeatureFile[]
+    probable_indirect: FeatureFile[]
+    probable_entry_points: FeatureFile[]
+    related_findings: string[]
+    related_quality_candidates: string[]
+    unknown_dynamic_impact: string
+  }
+  related_tests: FeatureFile[]
+  change_plan: {
+    start_here: string[]
+    inspect_files: string[]
+    likely_code_path: string[]
+    potentially_affected_files: string[]
+    tests_to_review: string[]
+    risks_and_limitations: string[]
+  }
+  limitations: string[]
 }
 export interface QualityResponse {
   analysis_job_id: string

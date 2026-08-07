@@ -4,6 +4,10 @@ All notable changes will be documented here. The project intends to follow [Keep
 
 ## [Unreleased]
 
+- Added bounded feature-location and change-impact intelligence to repository questions, including
+  deterministic routing, probable file/role ranking, direct and indirect static impact, likely
+  tests, exact source links, structured change plans, and dependency-graph focus.
+
 ### Added
 
 - Dashboard Phase 2: bounded Graph and Tree dependency visualization using persisted structure

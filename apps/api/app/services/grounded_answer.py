@@ -2,6 +2,7 @@ from app.ai.prompts.grounded_answer import SYSTEM_INSTRUCTIONS, build_grounded_a
 from app.ai.providers.base import LLMProvider, ProviderGroundedAnswerRequest
 from app.core.config import Settings
 from app.core.exceptions import GroundedAnswerValidationError
+from app.schemas.feature_location import FeatureLocationResult
 from app.schemas.grounded_answer import (
     EvidenceQuality,
     GroundedAnswer,
@@ -25,6 +26,7 @@ class GroundedAnswerService:
         correlation_id: str | None = None,
         maximum_citations: int = 10,
         structure_evidence: StructureEvidence | None = None,
+        feature_location: FeatureLocationResult | None = None,
     ) -> GroundedAnswer:
         request = GroundedAnswerRequest(
             analysis_job_id=search_result.analysis_job_id,
@@ -48,9 +50,10 @@ class GroundedAnswerService:
             question=request.question,
             evidence=evidence,
             structure_evidence=structure_evidence,
+            feature_location=feature_location,
             system_instructions=SYSTEM_INSTRUCTIONS,
             user_prompt=build_grounded_answer_prompt(
-                request.question, evidence, structure_evidence
+                request.question, evidence, structure_evidence, feature_location
             ),
             output_schema=self._output_schema(),
             correlation_id=correlation_id,

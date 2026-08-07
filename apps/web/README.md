@@ -45,6 +45,11 @@ Set `VITE_DEVGUIDE_API_URL` to the API origin (for example `http://localhost:800
 - `/repositories/:repositoryId` — view repository metadata and its latest analysis.
 - `/analyses/:analysisId/ask` — ask one evidence-backed question; the latest response is held only in page memory.
 
+Feature-location answers render probable files, inferred role badges, confidence, direct and
+indirect impact, likely tests, a structured plan, exact source links, and explicit limitations.
+“Focus in graph” selects the matching persisted path on the existing dashboard; its query string
+does not provide a trusted file ID. “Ask about this file” pre-fills a bounded impact question.
+
 ## Quality checks
 
 ```bash
