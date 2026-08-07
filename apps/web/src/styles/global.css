@@ -634,6 +634,23 @@ summary {
   text-transform: uppercase;
   font-weight: 750;
 }
+
+.tableWrap {
+  overflow-x: auto;
+}
+
+.tableWrap table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tableWrap th,
+.tableWrap td {
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
 .finding-high {
   border-left-color: var(--error);
 }

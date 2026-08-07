@@ -192,6 +192,12 @@ flowchart LR
 
 Stages never run repository-defined commands. Framework detection uses manifests and source evidence; it does not install dependencies. Static analysis is limited to analyzers that inspect files without executing project code. Every stage stores its status, attempt, timings, coverage, and safe error category.
 
+The implemented MVP worker currently runs `repository_ingestion`, `repository_parsing`,
+`code_findings`, and `repository_intelligence` before publishing `ready`. Repository intelligence
+uses persisted file identities and stores bounded, analysis-scoped local dependency edges,
+entry-point evidence, and coupling counts. It supports Python AST imports and literal static
+JavaScript/TypeScript import forms; unresolved, external, and dynamic imports create no edge.
+
 ## 12. Repository chat sequence
 
 Chat is retrieval-augmented generation over a completed or qualified partial analysis. The model sees the question, strict instructions, and a bounded evidence set—not the entire repository.
@@ -350,6 +356,9 @@ Repository content is revision-scoped. Deleting or expiring an analysis must cas
 | `SourceFile` | id, analysis_id, path, language, size, digest, classification, skip_reason | Inventory and revision-bound file metadata |
 | `Symbol` | id, source_file_id, kind, name, start_line, end_line, qualified_name | Parsed source structure |
 | `ImportEdge` | analysis_id, source_symbol/file, target reference, resolution status | Structural relationships without implying perfect resolution |
+| `RepositoryFileIntelligence` | analysis_id, repository_file_id, classification, entry-point evidence, inbound/outbound counts | Implemented per-file static structure metrics |
+| `RepositoryDependencyEdge` | analysis_id, source/target file IDs, relationship, module, source line, confidence | Implemented resolved local dependency evidence |
+| `AnalysisStructureMetadata` | analysis_id, limitations, timestamps | Implemented zero-edge readiness and limitations marker |
 | `CodeChunk` | id, source_file_id, symbol_id, text or protected reference, line range, digest | Retrieval unit and citation target |
 | `ChunkEmbedding` | chunk_id, model, dimensions, vector | Versioned semantic representation |
 | `Finding` | analysis_id, category, rule, severity, confidence, status, rationale | Qualified health, maintainability, or potential-security observation |

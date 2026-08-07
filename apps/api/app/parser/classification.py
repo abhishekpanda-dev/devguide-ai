@@ -53,6 +53,7 @@ def classify_file(
     is_test: bool = False,
     is_documentation: bool = False,
     is_configuration: bool = False,
+    is_generated: bool = False,
     content_prefix: str = "",
 ) -> FileClassification:
     path = PurePosixPath(path_value)
@@ -67,6 +68,8 @@ def classify_file(
     parts = tuple(part.casefold() for part in path.parts)
     directories = frozenset(parts[:-1])
     name = parts[-1]
+    if is_generated:
+        return FileClassification.GENERATED
     if directories & VENDOR_DIRECTORIES:
         return FileClassification.VENDOR
     if directories & BUILD_DIRECTORIES:

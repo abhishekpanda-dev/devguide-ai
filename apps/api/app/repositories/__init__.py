@@ -2,6 +2,7 @@ from app.repositories.analysis import AnalysisJobRepository, AnalysisStageReposi
 from app.repositories.finding import CodeFindingRepository, FindingsPage
 from app.repositories.parsed import AnalysisSummaryRecord, LanguageStatistics, ParsedRepository
 from app.repositories.repository import RepositoryRepository
+from app.repositories.structure import RepositoryStructureRepository, StructureRecord
 
 __all__ = [
     "AnalysisJobRepository",
@@ -12,4 +13,6 @@ __all__ = [
     "LanguageStatistics",
     "ParsedRepository",
     "RepositoryRepository",
+    "RepositoryStructureRepository",
+    "StructureRecord",
 ]

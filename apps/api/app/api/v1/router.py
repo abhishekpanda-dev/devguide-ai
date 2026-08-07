@@ -12,6 +12,7 @@ from app.api.dependencies import (
     ReadinessServiceDependency,
     RepositoryIntelligenceAgentDependency,
     RepositoryServiceDependency,
+    StructureServiceDependency,
     SubmissionServiceDependency,
     SuggestedFixServiceDependency,
 )
@@ -28,6 +29,7 @@ from app.schemas import (
     RepositoryRead,
     RepositorySubmissionRequest,
     RepositorySubmissionResponse,
+    StructureResponse,
     SuggestedFixResponse,
 )
 from app.schemas.health import HealthResponse
@@ -139,6 +141,26 @@ async def generate_suggested_fix(
     analysis_id: UUID, finding_id: UUID, service: SuggestedFixServiceDependency
 ) -> SuggestedFixResponse:
     return await service.generate(analysis_id, finding_id, correlation_id_context.get())
+
+
+@router.get("/analyses/{analysis_id}/structure", response_model=StructureResponse)
+async def get_repository_structure(
+    analysis_id: UUID,
+    service: StructureServiceDependency,
+    language: Annotated[str | None, Query(max_length=50)] = None,
+    path_prefix: Annotated[str | None, Query(max_length=2048)] = None,
+    relationship_type: Annotated[
+        str | None, Query(pattern="^(imports|requires|reexports)$")
+    ] = None,
+    limit: Annotated[int, Query(ge=1, le=1000)] = 500,
+) -> StructureResponse:
+    return await service.get_required(
+        analysis_id,
+        language=language,
+        path_prefix=path_prefix,
+        relationship_type=relationship_type,
+        limit=limit,
+    )
 
 
 @router.get(

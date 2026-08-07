@@ -43,6 +43,9 @@ All notable changes will be documented here. The project intends to follow [Keep
 TODO: Define the first release milestone and versioning policy.
 # Unreleased
 
+- Added persisted Python/JavaScript/TypeScript repository structure intelligence, probable entry
+  points, local dependency edges, coupling counts, a bounded structure API, worker stage, and
+  frontend Structure page.
 - Centralized findings file classification, excluded supported lock/generated/build/vendor/minified
   content, improved large-file evidence, and added high-confidence Python mutable-default,
   bare-except, runtime-assert, and disabled-TLS-verification rules.

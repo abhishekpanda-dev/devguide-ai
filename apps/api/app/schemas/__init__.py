@@ -37,6 +37,7 @@ from app.schemas.retrieval import (
     SearchRepositoryRequest,
     SearchRepositoryResult,
 )
+from app.schemas.structure import StructureResponse
 from app.schemas.submission import (
     RepositoryAnalysisListResponse,
     RepositorySubmissionRequest,
@@ -75,6 +76,7 @@ __all__ = [
     "SearchCoverage",
     "SearchRepositoryRequest",
     "SearchRepositoryResult",
+    "StructureResponse",
     "SuggestedFixResponse",
     "TokenUsage",
 ]
