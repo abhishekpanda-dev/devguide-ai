@@ -8,6 +8,7 @@ from app.api.dependencies import (
     AnalysisSummaryServiceDependency,
     CodeFindingServiceDependency,
     HealthServiceDependency,
+    QualityServiceDependency,
     QuestionReadyAnalysisDependency,
     ReadinessServiceDependency,
     RepositoryIntelligenceAgentDependency,
@@ -23,6 +24,7 @@ from app.schemas import (
     AnalysisJobRead,
     AnalysisSummary,
     CodeFindingsResponse,
+    QualityResponse,
     RepositoryAgentResponse,
     RepositoryAnalysisListResponse,
     RepositoryQuestionRequest,
@@ -160,6 +162,19 @@ async def get_repository_structure(
         path_prefix=path_prefix,
         relationship_type=relationship_type,
         limit=limit,
+    )
+
+
+@router.get("/analyses/{analysis_id}/quality", response_model=QualityResponse)
+async def get_repository_quality(
+    analysis_id: UUID,
+    service: QualityServiceDependency,
+    language: Annotated[str | None, Query(max_length=50)] = None,
+    path_prefix: Annotated[str | None, Query(max_length=2048)] = None,
+    limit: Annotated[int, Query(ge=1, le=500)] = 100,
+) -> QualityResponse:
+    return await service.get_required(
+        analysis_id, language=language, path_prefix=path_prefix, limit=limit
     )
 
 

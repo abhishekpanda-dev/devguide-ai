@@ -183,3 +183,10 @@ are probable heuristic candidates. Structure summaries are returned to the answe
 but do not acquire fabricated source citations; normal citations continue to be accepted only from
 validated persisted chunks. Mock mode is deterministic and offline, while configured Claude mode consumes
 the same bounded code and structure envelope.
+
+## Repository quality
+
+`GET /api/v1/analyses/{analysis_id}/quality` returns the persisted `quality-v1` score, category scores,
+explainable capped deductions, unused-code candidates, exact normalized duplicate groups, summary counts,
+limitations, and immutable GitHub links. Optional `language`, `path_prefix`, and bounded `limit` filters
+affect candidate lists, never trusted score inputs. All signals are deterministic and use no AI.

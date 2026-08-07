@@ -23,6 +23,7 @@ from app.schemas.parser import (
     RepositoryFileRead,
     RepositoryParseSummary,
 )
+from app.schemas.quality import QualityResponse
 from app.schemas.question import RepositoryQuestionRequest
 from app.schemas.repository import RepositoryCreate, RepositoryRead
 from app.schemas.repository_agent import (
@@ -60,6 +61,7 @@ __all__ = [
     "GroundedCitation",
     "MatchedChannel",
     "ParserPersistenceResult",
+    "QualityResponse",
     "RepositoryAgentCitation",
     "RepositoryAgentRequest",
     "RepositoryAgentResponse",

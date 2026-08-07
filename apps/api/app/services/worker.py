@@ -17,10 +17,12 @@ from app.models import (
     Repository,
 )
 from app.parser import RepositoryParser
+from app.quality import RepositoryQualityAnalyzer
 from app.repositories import AnalysisJobRepository, AnalysisStageRepository, RepositoryRepository
 from app.schemas import RepositoryIngestionResult
 from app.services.finding import CodeFindingPersistenceService
 from app.services.parser_persistence import ParserPersistenceService
+from app.services.quality import RepositoryQualityPersistenceService
 from app.services.structure import RepositoryStructurePersistenceService
 from app.structure import RepositoryStructureExtractor
 
@@ -28,6 +30,7 @@ INGESTION_STAGE = "repository_ingestion"
 PARSING_STAGE = "repository_parsing"
 FINDINGS_STAGE = "code_findings"
 INTELLIGENCE_STAGE = "repository_intelligence"
+QUALITY_STAGE = "repository_quality"
 READY_STAGE = "ready"
 
 
@@ -62,6 +65,8 @@ class AnalysisWorkerService:
         findings_persistence: CodeFindingPersistenceService | None = None,
         structure_extractor: RepositoryStructureExtractor | None = None,
         structure_persistence: RepositoryStructurePersistenceService | None = None,
+        quality_analyzer: RepositoryQualityAnalyzer | None = None,
+        quality_persistence: RepositoryQualityPersistenceService | None = None,
         settings: Settings | None = None,
     ) -> None:
         self._session = session
@@ -83,6 +88,16 @@ class AnalysisWorkerService:
         self._structure_persistence = (
             structure_persistence or RepositoryStructurePersistenceService(session)
         )
+        self._quality_analyzer = quality_analyzer or RepositoryQualityAnalyzer(
+            maximum_unused=configured.maximum_unused_candidates,
+            maximum_duplicate_groups=configured.maximum_duplicate_groups,
+            maximum_duplicate_members=configured.maximum_duplicate_members,
+            minimum_duplicate_lines=configured.minimum_duplicate_lines,
+            minimum_duplicate_tokens=configured.minimum_duplicate_tokens,
+        )
+        self._quality_persistence = quality_persistence or RepositoryQualityPersistenceService(
+            session
+        )
 
     async def process(self, analysis_job_id: UUID) -> WorkerResult:
         job = await self._jobs.get_by_id(analysis_job_id)
@@ -96,21 +111,17 @@ class AnalysisWorkerService:
                 0,
                 "analysis_job_not_found",
             )
-        intelligence_stage = await self._stages.get_by_name(job.id, INTELLIGENCE_STAGE)
-        if (
-            intelligence_stage is not None
-            and intelligence_stage.status is AnalysisStageStatus.COMPLETED
-        ):
+        quality_stage = await self._stages.get_by_name(job.id, QUALITY_STAGE)
+        if quality_stage is not None and quality_stage.status is AnalysisStageStatus.COMPLETED:
             return WorkerResult(
                 job.id,
-                INTELLIGENCE_STAGE,
-                intelligence_stage.status,
+                QUALITY_STAGE,
+                quality_stage.status,
                 job.status,
-                intelligence_stage.attempt,
+                quality_stage.attempt,
                 job.progress_percent,
                 limitations=(
-                    "Duplicate delivery was ignored because repository intelligence "
-                    "already completed.",
+                    "Duplicate delivery was ignored because repository quality already completed.",
                 ),
             )
         claimed = await self._jobs.claim_queued(job.id)
@@ -158,22 +169,27 @@ class AnalysisWorkerService:
                 structure = self._structure_extractor.analyze(parsed)
                 await self._structure_persistence.persist(claimed.id, structure)
                 self._complete_stage(intelligence_stage)
+                quality_stage = await self._start_stage(claimed, QUALITY_STAGE, 90)
+                quality = self._quality_analyzer.analyze(parsed, findings, structure)
+                await self._quality_persistence.persist(claimed.id, ingestion.commit_sha, quality)
+                self._complete_stage(quality_stage)
                 completed = await self._jobs.mark_completed(claimed.id, current_stage=READY_STAGE)
                 if completed is None:
                     raise RuntimeError("Running analysis could not be marked completed.")
                 await self._session.commit()
                 completed_result = WorkerResult(
                     claimed.id,
-                    INTELLIGENCE_STAGE,
-                    intelligence_stage.status,
+                    QUALITY_STAGE,
+                    quality_stage.status,
                     completed.status,
-                    intelligence_stage.attempt,
+                    quality_stage.attempt,
                     completed.progress_percent,
                     limitations=tuple(
                         (
                             *parsed.statistics.limitations,
                             *findings.limitations,
                             *structure.limitations,
+                            *quality.limitations,
                         )
                     ),
                 )
@@ -194,13 +210,16 @@ class AnalysisWorkerService:
                     ),
                 )
             stage = (
-                await self._stages.get_by_name(claimed.id, INTELLIGENCE_STAGE)
+                await self._stages.get_by_name(claimed.id, QUALITY_STAGE)
+                or await self._stages.get_by_name(claimed.id, INTELLIGENCE_STAGE)
                 or await self._stages.get_by_name(claimed.id, FINDINGS_STAGE)
                 or await self._stages.get_by_name(claimed.id, PARSING_STAGE)
                 or ingestion_stage
             )
             message = (
-                "Repository intelligence could not be completed."
+                "Repository quality could not be completed."
+                if stage.name == QUALITY_STAGE
+                else "Repository intelligence could not be completed."
                 if stage.name == INTELLIGENCE_STAGE
                 else "Code findings could not be completed."
                 if stage.name == FINDINGS_STAGE
@@ -213,13 +232,16 @@ class AnalysisWorkerService:
             return await self._fail(claimed, stage, message)
         except Exception:
             stage = (
-                await self._stages.get_by_name(claimed.id, INTELLIGENCE_STAGE)
+                await self._stages.get_by_name(claimed.id, QUALITY_STAGE)
+                or await self._stages.get_by_name(claimed.id, INTELLIGENCE_STAGE)
                 or await self._stages.get_by_name(claimed.id, FINDINGS_STAGE)
                 or await self._stages.get_by_name(claimed.id, PARSING_STAGE)
                 or ingestion_stage
             )
             message = (
-                "Repository intelligence could not be completed."
+                "Repository quality could not be completed."
+                if stage.name == QUALITY_STAGE
+                else "Repository intelligence could not be completed."
                 if stage.name == INTELLIGENCE_STAGE
                 else "Code findings could not be completed."
                 if stage.name == FINDINGS_STAGE

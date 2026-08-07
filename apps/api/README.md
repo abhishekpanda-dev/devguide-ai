@@ -192,3 +192,11 @@ addition to lexical chunks. Limits are configured with
 `DEVGUIDE_STRUCTURE_EVIDENCE_DIRECTORY_LIMIT`. Static edges are not runtime proof, probable entry points
 are heuristic, and unresolved relationships are reported as limitations. Mock mode makes no network calls;
 Claude mode uses this evidence only when configured through the existing provider interface.
+
+## Repository quality stage
+
+After structure intelligence, the worker persists bounded deterministic quality signals and `quality-v1`
+scores. Unused-code and duplicate-code results are candidates, not confirmed defects. Duplicate detection
+uses exact normalized Python top-level blocks with configurable minimum line/token thresholds and caps.
+Scores use documented capped deductions and never call Claude. Dynamic references, unsupported languages,
+and semantic clones remain explicit false-positive/false-negative risks.

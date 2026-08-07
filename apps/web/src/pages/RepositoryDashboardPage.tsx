@@ -61,6 +61,9 @@ export function RepositoryDashboardPage() {
             <Link className="button secondary" to={`/analyses/${latest.id}/structure`}>
               View structure
             </Link>
+            <Link className="button secondary" to={`/analyses/${latest.id}/quality`}>
+              View quality
+            </Link>
           </div>
         )}
       </div>

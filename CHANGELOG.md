@@ -58,3 +58,6 @@ TODO: Define the first release milestone and versioning policy.
 - Added bounded, server-derived structure evidence alongside existing lexical evidence.
 - Clarified static dependency, probable entry-point, and citation limitations in model prompts and API docs.
 - Preserved the existing question endpoint, offline mock provider, Claude provider path, and citation validation.
+- Added a deterministic `repository_quality` worker stage, persisted unused/duplicate candidates, and the
+  explainable `quality-v1` repository health score.
+- Added the bounded quality API and accessible repository quality page with immutable source links.
