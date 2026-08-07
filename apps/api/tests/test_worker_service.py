@@ -104,6 +104,7 @@ async def test_successful_parsing_completes_analysis_as_ready(
         "repository_parsing",
         "code_findings",
         "repository_intelligence",
+        "repository_quality",
     ]
     assert all(stage.status is AnalysisStageStatus.COMPLETED for stage in stages)
     assert all(stage.progress_percent == 100 for stage in stages)
@@ -209,7 +210,7 @@ async def test_stage_attempt_increments_when_pending_stage_exists(
     ingestion_stage = await stages.get_by_name(job.id, "repository_ingestion")
     assert ingestion_stage is not None
     assert ingestion_stage.attempt == 2
-    assert result.stage_name == "repository_intelligence"
+    assert result.stage_name == "repository_quality"
 
 
 async def test_ingestion_failure_marks_stage_and_analysis_failed(

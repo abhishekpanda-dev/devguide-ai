@@ -634,6 +634,12 @@ summary {
   text-transform: uppercase;
   font-weight: 750;
 }
+.healthScore {
+  margin: var(--space-3) 0;
+  color: var(--technical-strong);
+  font: 750 3rem/1 var(--font-mono);
+}
+.healthScore span { color: var(--text-muted); font-size: 1rem; }
 
 .tableWrap {
   overflow-x: auto;

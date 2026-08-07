@@ -15,6 +15,7 @@ from app.repositories import (
     AnalysisJobRepository,
     CodeFindingRepository,
     ParsedRepository,
+    RepositoryQualityRepository,
     RepositoryRepository,
     RepositoryStructureRepository,
 )
@@ -27,6 +28,7 @@ from app.services import (
 )
 from app.services.grounded_answer import GroundedAnswerService
 from app.services.health import HealthService
+from app.services.quality import RepositoryQualityService
 from app.services.readiness import DatabaseReadinessService, ReadinessService
 from app.services.structure import RepositoryStructureService
 from app.services.structure_evidence import StructureEvidenceService
@@ -70,6 +72,10 @@ def get_structure_repository(session: AsyncSessionDependency) -> RepositoryStruc
     return RepositoryStructureRepository(session)
 
 
+def get_quality_repository(session: AsyncSessionDependency) -> RepositoryQualityRepository:
+    return RepositoryQualityRepository(session)
+
+
 RepositoryRepositoryDependency = Annotated[RepositoryRepository, Depends(get_repository_repository)]
 AnalysisJobRepositoryDependency = Annotated[
     AnalysisJobRepository, Depends(get_analysis_job_repository)
@@ -80,6 +86,9 @@ CodeFindingRepositoryDependency = Annotated[
 ]
 StructureRepositoryDependency = Annotated[
     RepositoryStructureRepository, Depends(get_structure_repository)
+]
+QualityRepositoryDependency = Annotated[
+    RepositoryQualityRepository, Depends(get_quality_repository)
 ]
 
 
@@ -236,6 +245,17 @@ def get_structure_service(
 
 
 StructureServiceDependency = Annotated[RepositoryStructureService, Depends(get_structure_service)]
+
+
+def get_quality_service(
+    jobs: AnalysisJobRepositoryDependency,
+    repositories: RepositoryRepositoryDependency,
+    quality: QualityRepositoryDependency,
+) -> RepositoryQualityService:
+    return RepositoryQualityService(jobs, repositories, quality)
+
+
+QualityServiceDependency = Annotated[RepositoryQualityService, Depends(get_quality_service)]
 SubmissionServiceDependency = Annotated[
     RepositorySubmissionService, Depends(get_submission_service)
 ]

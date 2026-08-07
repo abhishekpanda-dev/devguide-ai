@@ -40,7 +40,7 @@ class Settings(BaseSettings):
     maximum_individual_file_size_mb: int = Field(default=5, ge=1, le=100)
     temporary_workspace_root: Path = Path(gettempdir()) / "devguide-workspaces"
     git_executable: str = Field(default="git", min_length=1, max_length=1024)
-    clone_depth: Literal[1] = 1
+    clone_depth: int = Field(default=1, ge=1, le=1)
     redis_url: AnyUrl = AnyUrl("redis://localhost:6379/0")
     queue_name: str = Field(default="devguide-analysis", min_length=1, max_length=100)
     worker_concurrency: int = Field(default=4, ge=1, le=100)
@@ -66,6 +66,11 @@ class Settings(BaseSettings):
     findings_large_file_line_threshold: int = Field(default=1000, ge=100, le=100_000)
     maximum_findings_per_analysis: int = Field(default=2000, ge=1, le=20_000)
     maximum_dependency_edges_per_analysis: int = Field(default=5000, ge=1, le=100_000)
+    maximum_unused_candidates: int = Field(default=100, ge=1, le=1000)
+    maximum_duplicate_groups: int = Field(default=50, ge=1, le=500)
+    maximum_duplicate_members: int = Field(default=8, ge=2, le=50)
+    minimum_duplicate_lines: int = Field(default=5, ge=3, le=100)
+    minimum_duplicate_tokens: int = Field(default=20, ge=10, le=1000)
 
     @field_validator("anthropic_api_key", mode="before")
     @classmethod

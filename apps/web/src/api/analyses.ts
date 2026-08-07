@@ -7,6 +7,7 @@ import type {
   FindingSeverity,
   SuggestedFix,
   StructureResponse,
+  QualityResponse,
 } from './types'
 export const getAnalysis = (id: string) => request<Analysis>(`/analyses/${id}`)
 export const getAnalysisSummary = (id: string) =>
@@ -34,3 +35,5 @@ export const getRepositoryStructure = (
   if (filters.relationshipType) params.set('relationship_type', filters.relationshipType)
   return request<StructureResponse>(`/analyses/${analysisId}/structure?${params}`)
 }
+export const getRepositoryQuality = (analysisId: string) =>
+  request<QualityResponse>(`/analyses/${analysisId}/quality?limit=100`)

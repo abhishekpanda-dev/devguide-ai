@@ -9,6 +9,12 @@ from app.models.enums import (
 )
 from app.models.finding import AnalysisFindingsMetadata, CodeFinding
 from app.models.parsed import AnalysisParseMetadata, CodeChunk, RepositoryFile
+from app.models.quality import (
+    AnalysisQualityMetadata,
+    DuplicateCodeGroup,
+    DuplicateCodeMember,
+    UnusedCodeCandidateModel,
+)
 from app.models.repository import Repository
 from app.models.structure import (
     AnalysisStructureMetadata,
@@ -21,11 +27,14 @@ __all__ = [
     "AnalysisJob",
     "AnalysisJobStatus",
     "AnalysisParseMetadata",
+    "AnalysisQualityMetadata",
     "AnalysisStage",
     "AnalysisStageStatus",
     "AnalysisStructureMetadata",
     "CodeChunk",
     "CodeFinding",
+    "DuplicateCodeGroup",
+    "DuplicateCodeMember",
     "FindingCategory",
     "FindingSeverity",
     "Repository",
@@ -34,4 +43,5 @@ __all__ = [
     "RepositoryFileIntelligence",
     "RepositorySourceType",
     "RepositoryStatus",
+    "UnusedCodeCandidateModel",
 ]
