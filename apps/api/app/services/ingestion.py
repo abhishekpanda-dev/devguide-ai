@@ -57,54 +57,66 @@ class RepositoryIngestionService:
     async def ingest(
         self, repository: Repository, analysis_job: AnalysisJob
     ) -> RepositoryIngestionResult:
+        try:
+            with self.create_workspace() as workspace:
+                return await self.ingest_in_workspace(repository, analysis_job, workspace)
+        except AppError:
+            await self._session.rollback()
+            raise
+        except SQLAlchemyError as exc:
+            await self._session.rollback()
+            raise PersistenceError from exc
+
+    def create_workspace(self) -> RepositoryWorkspace:
+        return self._workspace_factory(self._settings.temporary_workspace_root)
+
+    async def ingest_in_workspace(
+        self,
+        repository: Repository,
+        analysis_job: AnalysisJob,
+        workspace: RepositoryWorkspace,
+    ) -> RepositoryIngestionResult:
         normalized_url = self._validated_source(repository, analysis_job)
         try:
-            with self._workspace_factory(self._settings.temporary_workspace_root) as workspace:
-                await self._git_runner.clone(
-                    normalized_url,
-                    workspace.repository_path,
-                    workspace.metadata_path,
-                )
-                commit_sha = (
-                    await self._git_runner.resolve_head(
-                        workspace.repository_path, workspace.metadata_path
-                    )
-                ).lower()
-                if not _COMMIT_SHA.fullmatch(commit_sha):
-                    raise RepositoryCloneFailedError
-                default_branch = await self._git_runner.discover_default_branch(
+            await self._git_runner.clone(
+                normalized_url, workspace.repository_path, workspace.metadata_path
+            )
+            commit_sha = (
+                await self._git_runner.resolve_head(
                     workspace.repository_path, workspace.metadata_path
                 )
-                scan = self._scanner.scan(workspace.repository_path)
-
-                updated_repository = await self._repositories.update_clone_metadata(
-                    repository.id,
-                    commit_sha=commit_sha,
-                    default_branch=default_branch,
-                )
-                updated_analysis = await self._analysis_jobs.update_ingestion_state(
-                    analysis_job.id,
-                    current_stage=_INGESTION_STAGE,
-                    progress_percent=_INGESTION_PROGRESS,
-                )
-                if updated_repository is None or updated_analysis is None:
-                    raise PersistenceError
-                await self._session.commit()
-
-                limitations = list(scan.limitations)
-                if default_branch is None:
-                    limitations.append("The default branch could not be determined safely.")
-                return RepositoryIngestionResult(
-                    repository_id=repository.id,
-                    analysis_job_id=analysis_job.id,
-                    commit_sha=commit_sha,
-                    default_branch=default_branch,
-                    scanned_file_count=scan.file_count,
-                    scanned_size_bytes=scan.size_bytes,
-                    skipped_directory_count=scan.skipped_directory_count,
-                    completed_stage=_INGESTION_STAGE,
-                    limitations=limitations,
-                )
+            ).lower()
+            if not _COMMIT_SHA.fullmatch(commit_sha):
+                raise RepositoryCloneFailedError
+            default_branch = await self._git_runner.discover_default_branch(
+                workspace.repository_path, workspace.metadata_path
+            )
+            scan = self._scanner.scan(workspace.repository_path)
+            updated_repository = await self._repositories.update_clone_metadata(
+                repository.id, commit_sha=commit_sha, default_branch=default_branch
+            )
+            updated_analysis = await self._analysis_jobs.update_ingestion_state(
+                analysis_job.id,
+                current_stage=_INGESTION_STAGE,
+                progress_percent=_INGESTION_PROGRESS,
+            )
+            if updated_repository is None or updated_analysis is None:
+                raise PersistenceError
+            await self._session.commit()
+            limitations = list(scan.limitations)
+            if default_branch is None:
+                limitations.append("The default branch could not be determined safely.")
+            return RepositoryIngestionResult(
+                repository_id=repository.id,
+                analysis_job_id=analysis_job.id,
+                commit_sha=commit_sha,
+                default_branch=default_branch,
+                scanned_file_count=scan.file_count,
+                scanned_size_bytes=scan.size_bytes,
+                skipped_directory_count=scan.skipped_directory_count,
+                completed_stage=_INGESTION_STAGE,
+                limitations=limitations,
+            )
         except AppError:
             await self._session.rollback()
             raise

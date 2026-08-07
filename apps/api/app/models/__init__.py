@@ -5,6 +5,7 @@ from app.models.enums import (
     RepositorySourceType,
     RepositoryStatus,
 )
+from app.models.parsed import CodeChunk, RepositoryFile
 from app.models.repository import Repository
 
 __all__ = [
@@ -12,7 +13,9 @@ __all__ = [
     "AnalysisJobStatus",
     "AnalysisStage",
     "AnalysisStageStatus",
+    "CodeChunk",
     "Repository",
+    "RepositoryFile",
     "RepositorySourceType",
     "RepositoryStatus",
 ]

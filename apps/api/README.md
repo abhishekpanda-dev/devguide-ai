@@ -35,7 +35,9 @@ Run the worker with `arq app.worker.WorkerSettings`. A successful ingestion leav
 
 `app.parser.RepositoryParser` deterministically reads an existing repository workspace and returns accepted source files, extension-based language identifiers, SHA-256 metadata, line-based chunks, and repository summary statistics. It is internal only and is not called by the API or worker. Supported inputs are Python, JavaScript, TypeScript, Java, HTML, CSS, JSON, YAML, Markdown, and TOML. Binary, unsupported, oversized, rejected-media/archive/executable files, ignored directories, and symbolic links are skipped.
 
-Chunking defaults to 200 lines with 20 lines of overlap and preserves one-based inclusive ranges. The parser performs no AST extraction, framework detection, persistence, AI calls, embeddings, network access, or repository-code execution.
+Chunking defaults to 200 lines with 20 lines of overlap and preserves one-based inclusive ranges. After ingestion, the worker parses the same temporary workspace and replaces analysis-scoped `repository_files` and `code_chunks` rows before cleanup. Successful parsing leaves the analysis running at 40%. There are no public file or chunk routes.
+
+The parser performs no AST extraction, framework detection, AI calls, embeddings, network access, or repository-code execution.
 
 Configuration uses `DEVGUIDE_`-prefixed environment variables. See the repository `.env.example`. Never place production credentials in that file or logs.
 
