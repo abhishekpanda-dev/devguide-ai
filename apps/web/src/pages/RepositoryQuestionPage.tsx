@@ -127,7 +127,7 @@ export function RepositoryQuestionPage() {
           </div>
         </details>
         <button type="submit" disabled={mutation.isPending}>
-          {mutation.isPending ? 'Finding evidence…' : 'Ask DevGuide'}
+          {mutation.isPending ? 'Analyzing repository evidence…' : 'Ask DevGuide'}
         </button>
         {mutation.isError && <ApiErrorMessage error={mutation.error} />}
       </form>

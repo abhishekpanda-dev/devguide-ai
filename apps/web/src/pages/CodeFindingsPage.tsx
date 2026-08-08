@@ -89,7 +89,7 @@ export function CodeFindingsPage() {
       ) : query.data.findings.length === 0 ? (
         <div className="emptyState">
           <h2>No findings</h2>
-          <p>No deterministic findings were detected by the current ruleset.</p>
+          <p>No persisted findings were detected for this analysis.</p>
         </div>
       ) : (
         <div className="findingList">

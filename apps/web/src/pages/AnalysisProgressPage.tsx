@@ -36,7 +36,7 @@ export function AnalysisProgressPage() {
   const repositoryId = analysis.repository_id || submittedRepositoryId
   const usable = analysis.status === 'completed' || analysis.status === 'partial'
   const focusTarget =
-    repositoryId && usable ? dashboardFocusTarget(repositoryId, location.search) : null
+    repositoryId && usable ? dashboardFocusTarget(repositoryId, analysis.id, location.search) : null
   if (focusTarget) return <Navigate to={focusTarget} replace />
   return (
     <div className="narrow">

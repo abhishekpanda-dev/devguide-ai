@@ -66,7 +66,7 @@ test('renders empty state', async () => {
   )
   renderRoute(<CodeFindingsPage />, '/analyses/a1/findings', '/analyses/:analysisId/findings')
   expect(
-    await screen.findByText('No deterministic findings were detected by the current ruleset.'),
+    await screen.findByText('No persisted findings were detected for this analysis.'),
   ).toBeInTheDocument()
 })
 test('renders safe API error with correlation ID', async () => {

@@ -141,7 +141,7 @@ export function DashboardWorkspace({
             ))}
           </ul>
         ) : (
-          <p className="emptyCompact">No persisted findings to display.</p>
+          <p className="emptyCompact">No persisted findings were detected for this analysis.</p>
         )}
       </section>
     </main>

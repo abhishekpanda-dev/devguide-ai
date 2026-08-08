@@ -192,7 +192,7 @@ class AIProviderNotConfiguredError(AppError):
     def __init__(self) -> None:
         super().__init__(
             code="ai_provider_not_configured",
-            message="The configured AI provider is not available.",
+            message="Claude is not configured for this DevGuide environment.",
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
         )
 

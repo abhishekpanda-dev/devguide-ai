@@ -69,7 +69,11 @@ export function ActionsPanel({
                   </Link>
                 </article>
               ))}
-              {!findings?.findings.length && <p className="emptyCompact">No persisted findings.</p>}
+              {!findings?.findings.length && (
+                <p className="emptyCompact">
+                  No persisted findings were detected for this analysis.
+                </p>
+              )}
               <Link className="panelFooterLink" to={`/analyses/${analysis.id}/findings`}>
                 View all findings
               </Link>

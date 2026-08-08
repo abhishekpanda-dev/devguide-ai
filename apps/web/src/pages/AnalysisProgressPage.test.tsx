@@ -22,7 +22,9 @@ test('renders analysis progress', async () => {
   expect(screen.getByText('repository parsing')).toBeInTheDocument()
 })
 test('stops polling after a terminal status', async () => {
-  const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(() => jsonResponse(analysis))
+  const fetchSpy = vi
+    .spyOn(globalThis, 'fetch')
+    .mockImplementation(() => jsonResponse({ ...analysis, repository_id: '' }))
   renderRoute(<AnalysisProgressPage />, '/analyses/a1', '/analyses/:analysisId')
   await screen.findByText('completed')
   await new Promise((resolve) => setTimeout(resolve, 2100))
@@ -36,9 +38,9 @@ test('renders a safe terminal analysis error', async () => {
   expect(await screen.findByRole('alert')).toHaveTextContent('Repository parsing failed.')
 })
 
-test('preserves a persisted-path focus request when handing off to the repository dashboard', () => {
-  expect(dashboardFocusTarget('r1', '?focus=monitoring-dashboard%2Fsrc%2Frealtime.ts')).toBe(
-    '/repositories/r1?focus=monitoring-dashboard%2Fsrc%2Frealtime.ts',
+test('preserves the active analysis and persisted-path focus when opening the dashboard', () => {
+  expect(dashboardFocusTarget('r1', 'a1', '?focus=monitoring-dashboard%2Fsrc%2Frealtime.ts')).toBe(
+    '/repositories/r1?analysis=a1&focus=monitoring-dashboard%2Fsrc%2Frealtime.ts',
   )
-  expect(dashboardFocusTarget('r1', '')).toBeNull()
+  expect(dashboardFocusTarget('r1', 'a1', '')).toBe('/repositories/r1?analysis=a1')
 })
