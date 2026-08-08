@@ -11,12 +11,13 @@ The internal `LLMProvider`, Claude provider, deterministic `MockLLMProvider`, bo
 prompt builder, and structured response validation support this workflow. Automated agent tests
 use `MockLLMProvider`; they require no database, Redis, GitHub, network, or API key.
 
-There is no public chat endpoint. Embeddings, pgvector, repository overview generation,
-multi-agent behavior, authentication, and streaming are not implemented.
+An authenticated repository-question endpoint exposes this bounded workflow with server-enforced
+analysis ownership. Embeddings, pgvector semantic retrieval, repository overview generation,
+multi-agent behavior, and streaming are not implemented.
 
 ## Document status
 
-**Status:** Planned custom-agent specification; no runtime implementation exists.
+**Status:** Custom-agent contract with a bounded runtime foundation and automated tests
 
 This document defines a bounded agent contract. It does not authorize repository execution, unrestricted tools, or direct access to production systems.
 
@@ -35,6 +36,8 @@ The agent does not claim complete repository understanding.
 For one authorized analysis ID and immutable commit SHA, the agent may:
 
 - Explain repository structure, detected technologies, likely entry points, modules, symbols, and dependency relationships.
+- Locate likely feature files and describe direct static dependencies, dependents, probable indirect
+  impact, and tests to review.
 - Synthesize a qualified architecture explanation from indexed evidence.
 - Explain deterministic health, maintainability, and potential-security observations.
 - Answer repository-specific natural-language questions with validated citations.

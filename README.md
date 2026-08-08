@@ -3,27 +3,65 @@
 
 > Understand, improve, and ship unfamiliar codebases with confidence.
 
-DevGuide AI is an evidence-first repository intelligence platform. The current implementation supports public repository submission, bounded ingestion and parsing, deterministic static code findings, repository structure and local dependency intelligence, deterministic repository quality candidates and scoring, evidence retrieval, single-question grounded answers, and a React frontend for the implemented public API. Broader reports remain planned.
+DevGuide AI is an evidence-first repository intelligence platform. The implemented MVP supports
+local authentication, public repository submission, bounded ingestion and parsing, deterministic
+findings, structure/dependency intelligence, quality scoring, grounded repository questions, and a
+React frontend.
 
 ## Project status
 
-An early MVP foundation is implemented. It is not yet a complete working-application checkpoint: backend dependencies and a worker are required, and later analysis stages and reports remain unavailable.
+An early end-to-end MVP is implemented. PostgreSQL, Redis, the FastAPI API, ARQ worker, and web
+application must run for the live flow. Semantic/vector retrieval, broader reports, private
+repositories, and production hardening remain planned.
 
-## Planned workspace
+## Workspace
 
-- `apps/api` — API boundary (technology TODO)
-- `apps/worker` — background analysis boundary (technology TODO)
-- `apps/web` — React, TypeScript, and Vite frontend MVP
-- `agents` — custom agent definitions (TODO)
-- `skills` — custom skill definitions (TODO)
-- `docs` — decisions, diagrams, and demo material
-- `scripts` — repository automation (TODO)
+- `apps/api` - FastAPI API, shared services, ARQ worker, and Alembic migrations
+- `apps/worker` - worker deployment boundary
+- `apps/web` - React, TypeScript, and Vite frontend
+- `agents` - custom agent definitions
+- `skills` - reusable custom skill artifacts
+- `docs` - decisions, diagrams, demo, and integration guidance
 
-See [PRD.md](PRD.md), [architecture.md](architecture.md), and [CONTRIBUTING.md](CONTRIBUTING.md) for the current foundation.
+See [PRD.md](PRD.md), [architecture.md](architecture.md), and
+[CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Local development
 
-See [apps/api/README.md](apps/api/README.md) for backend setup and [apps/web/README.md](apps/web/README.md) for frontend setup. A live end-to-end flow requires the API, PostgreSQL, Redis, and worker.
+Follow [apps/api/README.md](apps/api/README.md) and [apps/web/README.md](apps/web/README.md). The
+live flow requires PostgreSQL, Redis, API, worker, and frontend.
+
+## Hackathon Entry Checkpoints
+
+- [Architecture](architecture.md)
+- [Coding-agent rules](AGENTS.md)
+- [Custom agents and skills](AGENTS_AND_SKILLS.md)
+- [Repository Intelligence Agent](agents/repository_intelligence_agent.md)
+- [Search Repository skill](skills/search_repository/SKILL.md)
+- [Feature Location and Change Impact skill](skills/feature-location-change-impact/SKILL.md)
+- [GitHub Actions workflow](.github/workflows/bootstrap.yml)
+- [Live demo checklist](docs/demo/README.md)
+
+Backend validation from `apps/api`:
+
+```text
+python -m ruff format --check .
+python -m ruff check .
+python -m mypy app tests
+python -m pytest
+```
+
+Frontend validation from `apps/web`:
+
+```text
+npm run format:check
+npm run lint
+npm run typecheck
+npm run test -- --run
+npm run build
+```
+
+The workflow defines required CI checks. Its presence does not prove a green remote run.
 
 ## License
 
