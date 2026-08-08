@@ -13,9 +13,10 @@ partial paths, phrases, token overlap, simple symbol-like matching, language fil
 prefixes. Returned evidence has fail-closed citation validation and below-threshold searches
 report insufficient evidence.
 
-Semantic embeddings, pgvector, dependency retrieval, Claude, learned reranking, and final answer
-generation are not implemented. Later semantic and dependency sections remain design requirements,
-not claims of current runtime behavior.
+Semantic embeddings, pgvector and dependency channels, learned reranking, and final answer
+generation are not implemented by this skill. Claude-backed final generation exists separately
+behind `LLMProvider`. Later semantic and dependency sections remain design requirements, not claims
+of current skill behavior.
 
 ## 1. Name
 

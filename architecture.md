@@ -1,28 +1,38 @@
-# DevGuide AI Planned Architecture
+# DevGuide AI Architecture
 
 > Understand, improve, and ship unfamiliar codebases with confidence.
 
 ## 1. Document status
 
-**Status:** Approved MVP architecture for implementation planning
+**Status:** Current MVP architecture with planned extensions identified explicitly
 
-**Implementation status:** Not implemented
+**Implementation status:** Early end-to-end MVP implemented; production hardening and selected
+retrieval/report capabilities remain planned
 
 **Architecture style:** Modular monolith with an asynchronous worker
 
-This document describes how DevGuide AI is planned to work. It is not evidence that any application component, integration, deployment, test, or operational control currently exists. Requirements in `PRD.md` remain the product source of truth; this document explains a technical design intended to satisfy them.
+This document describes the implemented MVP and approved extension points. Planned/future sections
+are not claims of working behavior; code, migrations, tests, and verified demonstrations establish
+runtime status.
 
 ## 2. Executive architecture summary
 
-DevGuide AI is planned as three deployable processes sharing one product codebase and one data model:
+DevGuide AI uses three deployable processes sharing one product codebase and one data model:
 
 - A React single-page application for repository submission, progress, reports, and cited chat.
 - A FastAPI modular monolith for validation, orchestration, retrieval, persistence, and public HTTP contracts.
 - A Python worker for bounded, asynchronous repository ingestion and analysis.
 
-PostgreSQL stores product records, analysis artifacts, citations, and vector embeddings through pgvector. Redis provides the job queue and short-lived coordination. The worker securely performs a shallow clone of a public GitHub repository, inventories files, parses supported languages with tree-sitter, falls back to bounded plain text, extracts symbols and imports, runs non-executing static checks, creates code-aware chunks and embeddings, and persists revision-bound evidence.
+PostgreSQL stores users, hashed sessions, ownership links, repositories, analysis state, chunks,
+findings, structure edges, quality results, and revision-bound evidence. Redis provides the ARQ
+queue and short-lived coordination, not authoritative storage. The worker shallow-clones a public
+repository, inventories and parses bounded content without executing it, runs deterministic
+findings/structure/quality stages, and persists results. Embeddings and pgvector semantic retrieval
+remain planned.
 
-Claude is the planned production language model behind an internal `LLMProvider` interface. `MockLLMProvider` supplies deterministic test behavior. All model outputs cross structured Pydantic validation, and material repository claims must cite file and line evidence. Repository content is untrusted data, never executable instructions. Normal analysis does not install dependencies, run builds, invoke repository scripts, or execute submitted code.
+Claude is the interactive provider behind `LLMProvider`; `MockLLMProvider` is explicit and
+deterministic in tests, with no silent fallback. Grounded outputs use Pydantic and fail-closed
+citations. Repository content is untrusted and is never executed or imported.
 
 This design favors a modular monolith over microservices to reduce hackathon delivery and operational cost while retaining clear internal module boundaries and a separately scalable worker process.
 
@@ -52,7 +62,7 @@ This design favors a modular monolith over microservices to reduce hackathon del
 ## 5. Constraints
 
 - Python 3.11+, FastAPI, Pydantic, SQLAlchemy 2, and Alembic are approved for backend and worker code.
-- React, TypeScript, Vite, Tailwind CSS, TanStack Query, and React Router are approved for the frontend.
+- React, TypeScript, Vite, plain CSS, TanStack Query, and React Router are used by the frontend.
 - PostgreSQL with pgvector and a Redis-backed queue are required.
 - Claude must be accessed through `LLMProvider`; tests must be able to use `MockLLMProvider`.
 - MVP uses a modular monolith plus asynchronous worker, not microservices.
@@ -63,6 +73,12 @@ This design favors a modular monolith over microservices to reduce hackathon del
 ## 6. High-level architecture
 
 The browser communicates only with the FastAPI application. FastAPI validates requests, stores durable state, enqueues analysis work, serves results, and coordinates retrieval-backed chat. The worker consumes queued jobs and writes stage results to PostgreSQL. Both backend processes use shared domain and infrastructure modules from the modular monolith. External AI calls occur behind provider interfaces.
+
+Implemented flow: User -> React frontend -> FastAPI API -> PostgreSQL/Redis -> ARQ worker ->
+repository ingestion -> parsing/evidence persistence -> findings -> structure/dependency
+intelligence -> quality intelligence -> ready dashboard. Ask DevGuide then retrieves bounded
+evidence for the authorized analysis and invokes Claude through `LLMProvider` with fail-closed
+citations.
 
 ```mermaid
 flowchart LR
@@ -244,11 +260,11 @@ Potential security findings are review leads, not guaranteed vulnerabilities. Th
 
 ## 14. Frontend architecture
 
-The planned frontend is a React and TypeScript single-page application built by Vite.
+The frontend is a React and TypeScript single-page application built by Vite.
 
 - **React Router** defines routes for submission, analysis status, report sections, and repository chat.
 - **TanStack Query** owns server state, request deduplication, caching, polling, retries, and invalidation. It does not become a second durable source of truth.
-- **Tailwind CSS** provides a constrained visual system with accessible semantic components.
+- **Plain CSS and shared design tokens** provide the responsive visual system.
 - Feature folders align to user capabilities: repository submission, analysis status, overview, architecture, health, evidence viewer, and chat.
 - Generated text and source excerpts are rendered as untrusted content with HTML sanitization and safe link policies.
 - URLs use stable analysis identifiers; secrets and repository content do not enter browser storage.
@@ -346,11 +362,19 @@ erDiagram
 
 Repository content is revision-scoped. Deleting or expiring an analysis must cascade through its source files, chunks, embeddings, reports, findings, chats, and citations according to the approved retention policy.
 
+Implemented authentication uses local email/password accounts with salted password hashes, opaque
+HTTP-only same-site session cookies, hashed session tokens with expiry in PostgreSQL, and
+`UserRepositoryAccess` ownership links. API dependencies resolve identity and enforce repository
+and analysis access on the server; clients cannot self-assert ownership.
+
 ## 21. Core database entities
 
 | Entity | Key fields | Purpose |
 | --- | --- | --- |
 | `Repository` | id, normalized URL, host, owner, name | Stable public repository identity without assuming mutable content |
+| `User` | id, normalized email, password_hash, timestamps | Local account identity |
+| `AuthSession` | id, user_id, token_hash, expires_at | Opaque revocable browser session |
+| `UserRepositoryAccess` | user_id, repository_id | Server-enforced repository access |
 | `Analysis` | id, repository_id, commit_sha, status, pipeline_version, coverage, timestamps | Immutable analysis snapshot and state machine |
 | `AnalysisStage` | analysis_id, name, status, attempt, heartbeat, error_code, timings | Idempotency, progress, diagnostics, and recovery |
 | `SourceFile` | id, analysis_id, path, language, size, digest, classification, skip_reason | Inventory and revision-bound file metadata |
@@ -371,7 +395,8 @@ JSON columns may hold versioned structured artifacts, but query-critical status,
 
 ## 22. API architecture
 
-The planned HTTP API is resource-oriented and versioned under a stable prefix. `API_DOCUMENTATION.md` must define the actual contract before endpoints are implemented.
+The HTTP API is resource-oriented and versioned under `/api/v1`; `API_DOCUMENTATION.md` records
+implemented routes and remaining limitations.
 
 Expected resource families are repositories/analyses, analysis stages, reports, findings, chat sessions/messages, and operational health. Submitting an analysis returns an identifier and asynchronous state rather than waiting for completion. Status reads are safe and idempotent. Creation requests should support an idempotency key to reduce duplicate analysis.
 

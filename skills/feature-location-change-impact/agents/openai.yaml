@@ -1,0 +1,4 @@
+interface:
+  display_name: "Feature Location and Change Impact"
+  short_description: "Locate features and map static change impact"
+  default_prompt: "Use $feature-location-change-impact to locate this feature and identify bounded static change impact."
