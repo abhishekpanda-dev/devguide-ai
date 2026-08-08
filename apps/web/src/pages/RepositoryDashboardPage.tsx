@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useParams } from 'react-router'
+import { useParams, useSearchParams } from 'react-router'
 import {
   getAnalysisSummary,
   getCodeFindings,
@@ -16,6 +16,7 @@ import { ApiErrorMessage } from '../components/feedback/ApiErrorMessage'
 
 export function RepositoryDashboardPage() {
   const { repositoryId = '' } = useParams()
+  const [searchParams] = useSearchParams()
   const client = useQueryClient()
   const [leftOpen, setLeftOpen] = useState(false)
   const [rightOpen, setRightOpen] = useState(false)
@@ -27,26 +28,29 @@ export function RepositoryDashboardPage() {
     queryKey: ['repository-analyses', repositoryId],
     queryFn: () => getRepositoryAnalyses(repositoryId),
   })
-  const latest = analyses.data?.items[0]
-  const enabled = Boolean(latest?.id)
+  const requestedAnalysisId = searchParams.get('analysis')
+  const activeAnalysis = requestedAnalysisId
+    ? analyses.data?.items.find((item) => item.id === requestedAnalysisId)
+    : analyses.data?.items[0]
+  const enabled = Boolean(activeAnalysis?.id)
   const summary = useQuery({
-    queryKey: ['analysis-summary', latest?.id],
-    queryFn: () => getAnalysisSummary(latest?.id ?? ''),
+    queryKey: ['analysis-summary', activeAnalysis?.id],
+    queryFn: () => getAnalysisSummary(activeAnalysis?.id ?? ''),
     enabled,
   })
   const findings = useQuery({
-    queryKey: ['code-findings', latest?.id, 'dashboard'],
-    queryFn: () => getCodeFindings(latest?.id ?? '', {}),
+    queryKey: ['code-findings', activeAnalysis?.id, 'dashboard'],
+    queryFn: () => getCodeFindings(activeAnalysis?.id ?? '', {}),
     enabled,
   })
   const structure = useQuery({
-    queryKey: ['repository-structure', latest?.id, 'dashboard'],
-    queryFn: () => getRepositoryStructure(latest?.id ?? '', {}),
+    queryKey: ['repository-structure', activeAnalysis?.id, 'dashboard'],
+    queryFn: () => getRepositoryStructure(activeAnalysis?.id ?? '', {}),
     enabled,
   })
   const quality = useQuery({
-    queryKey: ['repository-quality', latest?.id],
-    queryFn: () => getRepositoryQuality(latest?.id ?? ''),
+    queryKey: ['repository-quality', activeAnalysis?.id],
+    queryFn: () => getRepositoryQuality(activeAnalysis?.id ?? ''),
     enabled,
   })
 
@@ -71,7 +75,7 @@ export function RepositoryDashboardPage() {
         <ApiErrorMessage error={analyses.error} fallback="Analysis history could not be loaded." />
       </div>
     )
-  if (!latest)
+  if (!activeAnalysis)
     return (
       <div className="dashboardEmpty">
         <p className="eyebrow">Repository intelligence</p>
@@ -86,11 +90,15 @@ export function RepositoryDashboardPage() {
   const refresh = () =>
     client.invalidateQueries({
       predicate: (query) =>
-        query.queryKey.includes(latest.id) || query.queryKey.includes(repositoryId),
+        query.queryKey.includes(activeAnalysis.id) || query.queryKey.includes(repositoryId),
     })
   return (
     <div className="intelligenceShell" data-testid="dark-dashboard-shell">
-      <DashboardToolbar repository={repository.data} analysis={latest} onRefresh={refresh} />
+      <DashboardToolbar
+        repository={repository.data}
+        analysis={activeAnalysis}
+        onRefresh={refresh}
+      />
       <div className="mobilePanelControls">
         <button
           type="button"
@@ -110,7 +118,7 @@ export function RepositoryDashboardPage() {
       <div className="dashboardGrid">
         <div className={`dashboardPanelSlot ${leftOpen ? 'mobilePanelOpen' : ''}`}>
           <RepositorySidebar
-            analysis={latest}
+            analysis={activeAnalysis}
             summary={summary.data}
             findings={findings.data}
             structure={structure.data}
@@ -119,7 +127,7 @@ export function RepositoryDashboardPage() {
         </div>
         <DashboardWorkspace
           repository={repository.data}
-          analysis={latest}
+          analysis={activeAnalysis}
           summary={summary.data}
           structure={structure.data}
           findings={findings.data}
@@ -128,7 +136,7 @@ export function RepositoryDashboardPage() {
         />
         <div className={`dashboardPanelSlot ${rightOpen ? 'mobilePanelOpen' : ''}`}>
           <ActionsPanel
-            analysis={latest}
+            analysis={activeAnalysis}
             findings={findings.data}
             quality={quality.data}
             structure={structure.data}

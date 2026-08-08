@@ -87,6 +87,7 @@ def test_missing_key_fails_clearly() -> None:
     with pytest.raises(AIProviderNotConfiguredError) as caught:
         ClaudeProvider(api_key=None, model="model", timeout_seconds=1, retry_count=0)
     assert caught.value.code == "ai_provider_not_configured"
+    assert caught.value.message == "Claude is not configured for this DevGuide environment."
 
 
 async def test_claude_structured_response_and_safe_metadata() -> None:

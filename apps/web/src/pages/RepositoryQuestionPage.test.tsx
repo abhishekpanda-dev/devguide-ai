@@ -41,6 +41,14 @@ test('validates the question form', async () => {
   expect(screen.getByRole('alert')).toHaveTextContent(/Enter a question/)
   expect(spy).not.toHaveBeenCalled()
 })
+test('shows repository evidence loading copy while the grounded request is pending', async () => {
+  const user = userEvent.setup()
+  vi.spyOn(globalThis, 'fetch').mockImplementation(() => new Promise(() => undefined))
+  renderRoute(<RepositoryQuestionPage />, '/analyses/a1/ask', '/analyses/:analysisId/ask')
+  await user.type(screen.getByLabelText('Question'), 'How is authentication structured?')
+  await user.click(screen.getByRole('button', { name: 'Ask DevGuide' }))
+  expect(screen.getByRole('button')).toHaveTextContent('Analyzing repository evidence…')
+})
 test('renders a successful answer and citation details', async () => {
   await ask()
   expect(await screen.findByText(/Authentication is implemented/)).toBeInTheDocument()

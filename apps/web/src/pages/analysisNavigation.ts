@@ -1,4 +1,7 @@
-export function dashboardFocusTarget(repositoryId: string, search: string) {
-  const focus = new URLSearchParams(search).get('focus')
-  return focus ? `/repositories/${repositoryId}?focus=${encodeURIComponent(focus)}` : null
+export function dashboardFocusTarget(repositoryId: string, analysisId: string, search: string) {
+  const source = new URLSearchParams(search)
+  const target = new URLSearchParams({ analysis: analysisId })
+  const focus = source.get('focus')
+  if (focus) target.set('focus', focus)
+  return `/repositories/${repositoryId}?${target}`
 }

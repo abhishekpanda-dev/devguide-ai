@@ -52,7 +52,7 @@ class Settings(BaseSettings):
     worker_retry_delay_seconds: int = Field(default=5, ge=0, le=300)
     worker_heartbeat_interval_seconds: int = Field(default=15, ge=1, le=300)
     ai_provider_name: Literal["claude", "mock"] = Field(
-        default="mock",
+        default="claude",
         validation_alias=AliasChoices("DEVGUIDE_AI_PROVIDER", "DEVGUIDE_AI_PROVIDER_NAME"),
     )
     claude_model: str = Field(default="claude-sonnet-4-5", min_length=1, max_length=200)

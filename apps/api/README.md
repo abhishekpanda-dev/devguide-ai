@@ -77,8 +77,16 @@ frontend integration.
 
 ### Local Claude answers
 
-To opt into live Claude answers locally, set these variables in the repository `.env` and restart
-the API:
+Interactive API processes select Claude by default. In PowerShell, configure the existing settings
+variables in the same terminal before starting the API:
+
+```powershell
+$env:DEVGUIDE_AI_PROVIDER = "claude"
+$env:DEVGUIDE_ANTHROPIC_API_KEY = "your-local-secret"
+$env:DEVGUIDE_CLAUDE_MODEL = "claude-sonnet-4-5"
+```
+
+Alternatively, set the same variables in the repository `.env` and restart the API:
 
 ```dotenv
 DEVGUIDE_AI_PROVIDER=claude
@@ -94,6 +102,9 @@ Do not commit the key. A missing or blank key returns `ai_provider_not_configure
 timeouts and failures are translated to safe application errors, and raw Anthropic error details
 are not returned. Repository excerpts remain bounded untrusted prompt data; response citations
 are reconstructed from retrieved database evidence rather than accepted from Claude.
+
+Automated tests and intentional offline development must explicitly set
+`DEVGUIDE_AI_PROVIDER=mock`; the runtime never falls back from Claude to mock.
 
 ## Requirements
 

@@ -147,6 +147,36 @@ test('renders the dark shell with real metrics, workspace data, links, and toolb
   expect(screen.getByRole('button', { name: /Tools/ })).toHaveTextContent('Planned')
 })
 
+test('uses the persisted active analysis id across dashboard findings and quality requests', async () => {
+  const requested: string[] = []
+  vi.spyOn(globalThis, 'fetch').mockImplementation((input) => {
+    const url = String(input)
+    requested.push(url)
+    if (url.includes('/analyses?')) {
+      return jsonResponse({
+        items: [{ ...analysis, id: 'newer-analysis' }, analysis],
+        limit: 20,
+        offset: 0,
+      })
+    }
+    return dashboardResponse(input)
+  })
+
+  renderRoute(
+    <RepositoryDashboardPage />,
+    '/repositories/r1?analysis=a1',
+    '/repositories/:repositoryId',
+  )
+
+  expect(await screen.findByRole('link', { name: 'Ask' })).toHaveAttribute(
+    'href',
+    '/analyses/a1/ask',
+  )
+  expect(requested.some((url) => url.includes('/analyses/a1/findings'))).toBe(true)
+  expect(requested.some((url) => url.includes('/analyses/a1/quality'))).toBe(true)
+  expect(requested.some((url) => url.includes('/analyses/newer-analysis/'))).toBe(false)
+})
+
 test('renders a full-shell loading state', () => {
   vi.spyOn(globalThis, 'fetch').mockImplementation(() => new Promise(() => undefined))
   renderRoute(<RepositoryDashboardPage />, '/repositories/r1', '/repositories/:repositoryId')
