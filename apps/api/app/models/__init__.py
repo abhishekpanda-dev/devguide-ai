@@ -1,4 +1,5 @@
 from app.models.analysis import AnalysisJob, AnalysisStage
+from app.models.auth import AuthSession, User, UserRepositoryAccess
 from app.models.enums import (
     AnalysisJobStatus,
     AnalysisStageStatus,
@@ -31,6 +32,7 @@ __all__ = [
     "AnalysisStage",
     "AnalysisStageStatus",
     "AnalysisStructureMetadata",
+    "AuthSession",
     "CodeChunk",
     "CodeFinding",
     "DuplicateCodeGroup",
@@ -44,4 +46,6 @@ __all__ = [
     "RepositorySourceType",
     "RepositoryStatus",
     "UnusedCodeCandidateModel",
+    "User",
+    "UserRepositoryAccess",
 ]

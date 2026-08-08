@@ -8,18 +8,36 @@ import { RepositoryQuestionPage } from '../pages/RepositoryQuestionPage'
 import { RepositorySubmitPage } from '../pages/RepositorySubmitPage'
 import { RepositoryStructurePage } from '../pages/RepositoryStructurePage'
 import { RepositoryQualityPage } from '../pages/RepositoryQualityPage'
+import { LoginPage } from '../pages/LoginPage'
+import { RegisterPage } from '../pages/RegisterPage'
+import { ProtectedRoute, PublicOnlyRoute } from '../auth/RouteGuards'
 const router = createBrowserRouter([
   {
-    element: <AppShell />,
+    element: <PublicOnlyRoute />,
     children: [
-      { path: '/', element: <RepositorySubmitPage /> },
-      { path: '/analyses/:analysisId', element: <AnalysisProgressPage /> },
-      { path: '/repositories/:repositoryId', element: <RepositoryDashboardPage /> },
-      { path: '/analyses/:analysisId/ask', element: <RepositoryQuestionPage /> },
-      { path: '/analyses/:analysisId/findings', element: <CodeFindingsPage /> },
-      { path: '/analyses/:analysisId/structure', element: <RepositoryStructurePage /> },
-      { path: '/analyses/:analysisId/quality', element: <RepositoryQualityPage /> },
-      { path: '*', element: <NotFoundPage /> },
+      { path: '/sign-in', element: <LoginPage /> },
+      { path: '/login', element: <LoginPage /> },
+      { path: '/sign-up', element: <RegisterPage /> },
+      { path: '/register', element: <RegisterPage /> },
+    ],
+  },
+  {
+    element: <ProtectedRoute />,
+    children: [
+      {
+        element: <AppShell />,
+        children: [
+          { path: '/', element: <RepositorySubmitPage /> },
+          { path: '/repositories/new', element: <RepositorySubmitPage /> },
+          { path: '/analyses/:analysisId', element: <AnalysisProgressPage /> },
+          { path: '/repositories/:repositoryId', element: <RepositoryDashboardPage /> },
+          { path: '/analyses/:analysisId/ask', element: <RepositoryQuestionPage /> },
+          { path: '/analyses/:analysisId/findings', element: <CodeFindingsPage /> },
+          { path: '/analyses/:analysisId/structure', element: <RepositoryStructurePage /> },
+          { path: '/analyses/:analysisId/quality', element: <RepositoryQualityPage /> },
+          { path: '*', element: <NotFoundPage /> },
+        ],
+      },
     ],
   },
 ])

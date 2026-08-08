@@ -42,6 +42,9 @@ class Settings(BaseSettings):
     git_executable: str = Field(default="git", min_length=1, max_length=1024)
     clone_depth: int = Field(default=1, ge=1, le=1)
     redis_url: AnyUrl = AnyUrl("redis://localhost:6379/0")
+    auth_cookie_name: str = Field(default="devguide_session", min_length=1, max_length=100)
+    auth_session_hours: int = Field(default=168, ge=1, le=720)
+    auth_cookie_secure: bool = False
     queue_name: str = Field(default="devguide-analysis", min_length=1, max_length=100)
     worker_concurrency: int = Field(default=4, ge=1, le=100)
     worker_job_timeout_seconds: int = Field(default=300, ge=1, le=3600)

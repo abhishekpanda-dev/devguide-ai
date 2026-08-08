@@ -1,16 +1,20 @@
 from typing import Annotated, cast
 from uuid import UUID
 
-from fastapi import Depends, Request
+from fastapi import Cookie, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.ai.agents import RepositoryIntelligenceAgent
 from app.ai.agents.factory import build_llm_provider
 from app.ai.providers import LLMProvider, SuggestedFixProvider
 from app.ai.retrieval import SearchRepositorySkill
-from app.core.exceptions import AnalysisNotFoundError, AnalysisNotReadyError
+from app.core.exceptions import (
+    AnalysisNotFoundError,
+    AnalysisNotReadyError,
+    AuthenticationRequiredError,
+)
 from app.db.session import get_db_session
-from app.models import AnalysisJob, AnalysisJobStatus
+from app.models import AnalysisJob, AnalysisJobStatus, User
 from app.repositories import (
     AnalysisJobRepository,
     CodeFindingRepository,
@@ -26,6 +30,8 @@ from app.services import (
     RepositoryService,
     RepositorySubmissionService,
 )
+from app.services.access import AccessControlService
+from app.services.auth import AuthService
 from app.services.feature_location import FeatureLocationService
 from app.services.grounded_answer import GroundedAnswerService
 from app.services.health import HealthService
@@ -51,6 +57,38 @@ HealthServiceDependency = Annotated[HealthService, Depends(get_health_service)]
 ReadinessServiceDependency = Annotated[ReadinessService, Depends(get_readiness_service)]
 
 AsyncSessionDependency = Annotated[AsyncSession, Depends(get_db_session)]
+
+
+def get_auth_service(request: Request, session: AsyncSessionDependency) -> AuthService:
+    return AuthService(session, request.app.state.settings.auth_session_hours)
+
+
+AuthServiceDependency = Annotated[AuthService, Depends(get_auth_service)]
+
+
+def get_access_control_service(session: AsyncSessionDependency) -> AccessControlService:
+    return AccessControlService(session)
+
+
+AccessControlServiceDependency = Annotated[
+    AccessControlService, Depends(get_access_control_service)
+]
+
+
+async def get_current_user(
+    request: Request,
+    service: AuthServiceDependency,
+    devguide_session: Annotated[str | None, Cookie()] = None,
+) -> User:
+    settings = request.app.state.settings
+    token = request.cookies.get(settings.auth_cookie_name) or devguide_session
+    user = await service.resolve_session(token)
+    if user is None:
+        raise AuthenticationRequiredError
+    return user
+
+
+CurrentUserDependency = Annotated[User, Depends(get_current_user)]
 
 
 def get_repository_repository(session: AsyncSessionDependency) -> RepositoryRepository:

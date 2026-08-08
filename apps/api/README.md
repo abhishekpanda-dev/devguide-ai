@@ -101,6 +101,14 @@ are reconstructed from retrieved database evidence rather than accepted from Cla
 - PostgreSQL for a successful readiness check (tests do not require it)
 - Redis for real submission dispatch and worker execution (unit tests do not require it)
 
+## Authentication
+
+`POST /api/v1/auth/register`, `POST /api/v1/auth/login`, `GET /api/v1/auth/me`, and
+`POST /api/v1/auth/logout` provide the bounded email/password flow. Passwords are stored only as
+salted PBKDF2 hashes. Sessions are opaque server-side records delivered through an HTTP-only,
+SameSite cookie; production HTTPS deployments must set `DEVGUIDE_AUTH_COOKIE_SECURE=true`.
+Repository and analysis access is scoped through persisted user-to-repository grants.
+
 ## Setup and run
 
 ```bash

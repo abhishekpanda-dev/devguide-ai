@@ -14,13 +14,12 @@ export class ApiError extends Error {
   }
 }
 
-const baseUrl = (import.meta.env.VITE_DEVGUIDE_API_URL ?? '').replace(/\/$/, '')
-
 export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let response: Response
   try {
-    response = await fetch(`${baseUrl}/api/v1${path}`, {
+    response = await fetch(`/api/v1${path}`, {
       ...init,
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json', ...init?.headers },
     })
   } catch {
@@ -45,5 +44,6 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
       response.status,
     )
   }
+  if (response.status === 204) return undefined as T
   return response.json() as Promise<T>
 }

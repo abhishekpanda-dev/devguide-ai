@@ -1,7 +1,9 @@
 import { NavLink, Outlet, useParams } from 'react-router'
+import { useAuth } from '../../auth/AuthContext'
 
 export function AppShell() {
   const { repositoryId, analysisId } = useParams()
+  const { signOut } = useAuth()
   return (
     <>
       <header className="appHeader">
@@ -20,6 +22,9 @@ export function AppShell() {
             {analysisId && <NavLink to={`/analyses/${analysisId}/structure`}>Structure</NavLink>}
             {analysisId && <NavLink to={`/analyses/${analysisId}/quality`}>Quality</NavLink>}
           </nav>
+          <button className="headerLogout" type="button" onClick={() => void signOut()}>
+            Sign out
+          </button>
         </div>
       </header>
       <main id="main-content" className={repositoryId ? 'page dashboardPage' : 'page'}>
