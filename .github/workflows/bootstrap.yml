@@ -87,11 +87,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          tracked="$(git ls-files '*.log' '*.dump' '*.sql' '.env' '.env.*' 'node_modules/**' 'dist/**' '**/__pycache__/**' 'playwright-report/**' 'test-results/**' | grep -v '^\.env\.example$' || true)"
+          tracked="$(git ls-files '*.log' '*.dump' '*.sql' '.env' '.env.*' 'node_modules/**' 'dist/**' '**/__pycache__/**' 'playwright-report/**' 'test-results/**' |  || true)"
           test -z "$tracked" || { printf 'Tracked artifacts:\n%s\n' "$tracked"; exit 1; }
       - name: Reject common committed secret values
         shell: bash
-        run: |
+        run: |grep -v -E '^\.env(\.[A-Za-z0-9_-]+)?\.example$'
           set -euo pipefail
           if git grep -I -n -E 'sk-ant-[A-Za-z0-9_-]{16,}|ANTHROPIC_API_KEY=[^[:space:]]{8,}|PRIVATE_TOKEN=[^[:space:]]{8,}|SESSION_TOKEN=[^[:space:]]{16,}' -- apps ':!apps/api/README.md' ':!**/*.test.*'; then
             echo 'Potential committed secret value detected.'
