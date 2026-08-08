@@ -213,6 +213,8 @@ out/
 .turbo/
 playwright-report/
 test-results/
+backups/
+.env.production
 
 # Local tooling and operating systems
 .DS_Store
