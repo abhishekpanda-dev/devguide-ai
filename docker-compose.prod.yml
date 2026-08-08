@@ -1,0 +1,87 @@
+name: devguide
+
+services:
+  postgres:
+    image: postgres:16.8-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    networks: [backend]
+
+  redis:
+    image: redis:7.4.2-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--save", "60", "1"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    networks: [backend]
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    image: devguide-api:${DEVGUIDE_IMAGE_TAG:-local}
+    restart: unless-stopped
+    env_file: ${DEVGUIDE_ENV_FILE:-.env.production}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    expose: ["8015"]
+    networks:
+      - backend
+      - egress
+
+  worker:
+    image: devguide-api:${DEVGUIDE_IMAGE_TAG:-local}
+    restart: unless-stopped
+    command: ["python", "-m", "arq", "app.worker.WorkerSettings"]
+    env_file: ${DEVGUIDE_ENV_FILE:-.env.production}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - backend
+      - egress
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    image: devguide-web:${DEVGUIDE_IMAGE_TAG:-local}
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "${DEVGUIDE_HTTP_PORT:-80}:80"
+    networks:
+      - backend
+      - public
+
+networks:
+  backend:
+    internal: true
+  egress:
+  public:
+
+volumes:
+  postgres_data:
+  redis_data:
