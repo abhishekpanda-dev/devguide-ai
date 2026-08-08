@@ -1,4 +1,5 @@
 # DevGuide AI
+<img width="944" height="488" alt="Screenshot 2026-08-08 121911" src="https://github.com/user-attachments/assets/20744428-b852-41b1-b323-b29c8bf5fb93" />
 
 > Understand, improve, and ship unfamiliar codebases with confidence.
 
