@@ -27,3 +27,14 @@ repository, commit, tester, and result when it is performed.
 
 Mark the live flow PASS only after every step is observed. Store screenshots or recordings outside
 the repository unless explicitly approved.
+## Judge Demo Sequence
+
+1. Sign in with the prepared test account.
+2. Submit the demo repository.
+3. Show analysis progress reaching ready and 100%.
+4. Open Findings and explain one detected issue.
+5. Open Quality and explain the deterministic score.
+6. Show Bundle, Flow, and Tree dependency views.
+7. Ask DevGuide where to modify the report-generation feature.
+8. Show exact source links and limitations.
+9. Sign out and confirm protected routes redirect to login.
