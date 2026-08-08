@@ -62,6 +62,33 @@ class ApplicationValidationError(AppError):
         )
 
 
+class AuthenticationError(AppError):
+    def __init__(self) -> None:
+        super().__init__(
+            code="invalid_credentials",
+            message="Email or password is incorrect.",
+            status_code=status.HTTP_401_UNAUTHORIZED,
+        )
+
+
+class AuthenticationRequiredError(AppError):
+    def __init__(self) -> None:
+        super().__init__(
+            code="authentication_required",
+            message="Sign in to continue.",
+            status_code=status.HTTP_401_UNAUTHORIZED,
+        )
+
+
+class DuplicateEmailError(AppError):
+    def __init__(self) -> None:
+        super().__init__(
+            code="email_unavailable",
+            message="An account could not be created with those details.",
+            status_code=status.HTTP_409_CONFLICT,
+        )
+
+
 class InvalidRepositoryUrlError(AppError):
     def __init__(self, message: str = "The repository URL is invalid or unsupported.") -> None:
         super().__init__(

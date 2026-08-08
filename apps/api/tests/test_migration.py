@@ -25,6 +25,9 @@ def test_migration_upgrade_and_downgrade_render_postgresql_sql(
     assert "CREATE TABLE repository_files" in upgrade_sql
     assert "CREATE TABLE code_chunks" in upgrade_sql
     assert "CREATE TABLE code_findings" in upgrade_sql
+    assert "CREATE TABLE users" in upgrade_sql
+    assert "CREATE TABLE auth_sessions" in upgrade_sql
+    assert "CREATE TABLE user_repository_access" in upgrade_sql
     assert upgrade_sql.count("CREATE TYPE finding_severity") == 1
     assert upgrade_sql.count("CREATE TYPE finding_category") == 1
     assert "ON DELETE RESTRICT" in upgrade_sql
@@ -36,4 +39,5 @@ def test_migration_upgrade_and_downgrade_render_postgresql_sql(
     assert "DROP TABLE repository_files" in downgrade_sql
     assert "DROP TABLE analysis_jobs" in downgrade_sql
     assert "DROP TABLE repositories" in downgrade_sql
+    assert "DROP TABLE users" in downgrade_sql
     assert "DROP TYPE repository_status" in downgrade_sql

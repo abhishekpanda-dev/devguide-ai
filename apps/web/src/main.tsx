@@ -4,13 +4,16 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import App from './App'
 import './styles/tokens.css'
 import './styles/global.css'
+import { AuthProvider } from './auth/AuthContext'
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 5_000 }, mutations: { retry: false } },
 })
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <App />
+      <AuthProvider>
+        <App />
+      </AuthProvider>
     </QueryClientProvider>
   </StrictMode>,
 )
